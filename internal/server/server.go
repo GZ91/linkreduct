@@ -50,8 +50,10 @@ func methodGet(w http.ResponseWriter, r *http.Request) (err error) {
 	id := strings.TrimPrefix(r.URL.Path, "/")
 	if link, ok := database.GetUrl(id); ok {
 		w.Write([]byte(link))
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
 	}
-	w.WriteHeader(http.StatusOK)
 	return nil
 }
 
@@ -63,12 +65,12 @@ func methodPost(w http.ResponseWriter, r *http.Request) (err error) {
 	}()
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusTemporaryRedirect)
+		w.WriteHeader(http.StatusBadRequest)
 		return err
 	}
 	id := database.AddUrl(string(link), Config)
 	bodyText := "http://" + Config.GetAddressServer() + "/" + id
 	w.Write([]byte(bodyText))
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	return nil
 }
