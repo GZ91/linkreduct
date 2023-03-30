@@ -51,7 +51,7 @@ func methodGet(w http.ResponseWriter, r *http.Request) (err error) {
 	if link, ok := database.GetUrl(id); ok {
 		w.Write([]byte(link))
 	}
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	w.WriteHeader(http.StatusOK)
 	return nil
 }
 
@@ -69,6 +69,6 @@ func methodPost(w http.ResponseWriter, r *http.Request) (err error) {
 	id := database.AddUrl(string(link), Config)
 	bodyText := "http://" + Config.GetAddressServer() + "/" + id
 	w.Write([]byte(bodyText))
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	return nil
 }
