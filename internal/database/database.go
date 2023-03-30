@@ -2,7 +2,7 @@ package database
 
 import (
 	"github.com/GZ91/linkreduct/internal/config"
-	genesis_runes "github.com/GZ91/linkreduct/internal/genesis-runes"
+	"github.com/GZ91/linkreduct/internal/genrunes"
 	"sync"
 )
 
@@ -33,20 +33,20 @@ func (r *db) GetDB(key string) (val string, ok bool) {
 	return
 }
 
-func GetUrl(id string) (val string, found bool) {
+func GetURL(id string) (val string, found bool) {
 	val, found = DB.GetDB(id)
 	return
 }
 
-func AddUrl(url string, config *config.Config) string {
-	lenId := 5
+func AddURL(url string, config *config.Config) string {
+	lenID := 5
 	iterLen := 0
 	MaxIterLen := config.GetMaxIterLen()
 	for {
 		if iterLen == MaxIterLen {
-			lenId++
+			lenID++
 		}
-		idString := genesis_runes.RandStringRunes(lenId)
+		idString := genrunes.RandStringRunes(lenID)
 		if _, found := DB.GetDB(idString); found {
 			iterLen++
 			continue

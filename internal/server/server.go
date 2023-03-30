@@ -47,7 +47,7 @@ func methodPost(next http.Handler) http.Handler {
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 		}
-		id := database.AddUrl(string(link), Config)
+		id := database.AddURL(string(link), Config)
 		bodyText := "http://" + Config.GetAddressServer() + "/" + id
 		w.Header().Add("Content-Type", "text/plain")
 		w.Header().Add("Content-Length", fmt.Sprint(len(bodyText)))
@@ -63,7 +63,7 @@ func methodGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/")
-	if link, ok := database.GetUrl(id); ok {
+	if link, ok := database.GetURL(id); ok {
 		w.Header().Add("Location", link)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {

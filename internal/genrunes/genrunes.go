@@ -1,4 +1,4 @@
-package genesis_runes
+package genrunes
 
 import (
 	"math/rand"
