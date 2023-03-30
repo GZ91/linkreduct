@@ -29,11 +29,11 @@ func Start(config config.Config) (err error) {
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		if err := methodGet(w, r); err != nil {
+		if err := methodGet(&w, r); err != nil {
 			w.Write([]byte(fmt.Sprintf("%v /t/n", err)))
 		}
 	case http.MethodPost:
-		if err := methodPost(w, r); err != nil {
+		if err := methodPost(&w, r); err != nil {
 			w.Write([]byte(fmt.Sprintf("%v /t/n", err)))
 		}
 	default:
@@ -41,7 +41,7 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func methodGet(w http.ResponseWriter, r *http.Request) (err error) {
+func methodGet(w *http.ResponseWriter, r *http.Request) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(r.(string))
@@ -57,7 +57,7 @@ func methodGet(w http.ResponseWriter, r *http.Request) (err error) {
 	return nil
 }
 
-func methodPost(w http.ResponseWriter, r *http.Request) (err error) {
+func methodPost(w *http.ResponseWriter, r *http.Request) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
