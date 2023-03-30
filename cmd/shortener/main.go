@@ -1,5 +1,13 @@
 package main
 
+import (
+	"github.com/GZ91/linkreduct/internal/app"
+	"github.com/GZ91/linkreduct/internal/config"
+)
+
 func main() {
-	println("hello world")
+
+	appliction := app.New(config.New(false, "localhost:8080", 10))
+	appliction.Run()
+
 }
