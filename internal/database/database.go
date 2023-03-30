@@ -19,14 +19,14 @@ type db struct {
 	mutex sync.Mutex
 }
 
-func (r db) SetDB(key, value string) bool {
+func (r *db) SetDB(key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.data[key] = value
 	return true
 }
 
-func (r db) GetDB(key string) (val string, ok bool) {
+func (r *db) GetDB(key string) (val string, ok bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	val, ok = r.data[key]
@@ -38,7 +38,7 @@ func GetUrl(id string) (val string, found bool) {
 	return
 }
 
-func AddUrl(url string, config config.Config) string {
+func AddUrl(url string, config *config.Config) string {
 	lenId := 5
 	iterLen := 0
 	MaxIterLen := config.GetMaxIterLen()

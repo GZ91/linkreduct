@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"github.com/GZ91/linkreduct/internal/config"
 	"github.com/GZ91/linkreduct/internal/database"
 	"io"
@@ -9,11 +10,11 @@ import (
 	"strings"
 )
 
-var Config config.Config
+var Config *config.Config
 
 type Middleware func(http.Handler) http.Handler
 
-func Start(config config.Config) (err error) {
+func Start(config *config.Config) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New(r.(string))
@@ -49,7 +50,7 @@ func methodPost(next http.Handler) http.Handler {
 		id := database.AddUrl(string(link), Config)
 		bodyText := "http://" + Config.GetAddressServer() + "/" + id
 		w.Header().Add("Content-Type", "text/plain")
-		w.Header().Add("Content-Length", string(len(bodyText)))
+		w.Header().Add("Content-Length", fmt.Sprint(len(bodyText)))
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(bodyText))
 		next.ServeHTTP(w, r)

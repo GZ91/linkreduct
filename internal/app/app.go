@@ -9,10 +9,10 @@ import (
 var appLink *app
 
 type app struct {
-	Config config.Config
+	Config *config.Config
 }
 
-func New(config config.Config) *app {
+func New(config *config.Config) *app {
 	if appLink == nil {
 		appLink = &app{
 			config,
