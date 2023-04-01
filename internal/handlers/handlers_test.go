@@ -32,8 +32,8 @@ func TestHandlers(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, res.StatusCode, "TEST POST 201")
 
-		defer res.Body.Close()
 		body, err := io.ReadAll(res.Body)
+		res.Body.Close()
 		if assert.NoErrorf(t, err, "error at the request body stage TEST POST 201") {
 			assert.NotEqual(t, 0, len(string(body)), "TEST POST 201")
 		}
@@ -47,7 +47,7 @@ func TestHandlers(t *testing.T) {
 		methodpost.ServeHTTP(rec, req)
 
 		res := rec.Result()
-
+		res.Body.Close()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode, "TEST POST 400")
 	}
 	{ //GET 307
@@ -58,7 +58,7 @@ func TestHandlers(t *testing.T) {
 		MethodGet(rec, req)
 
 		res := rec.Result()
-
+		res.Body.Close()
 		val := res.Header.Get("Location")
 
 		assert.Equal(t, targetLink, val, "TEST GET 307")
@@ -72,7 +72,7 @@ func TestHandlers(t *testing.T) {
 		MethodGet(rec, req)
 
 		res := rec.Result()
-
+		res.Body.Close()
 		val := res.Header.Get("Location")
 
 		assert.NotEqual(t, targetLink, val, "TEST GET 400 \"not found ID\" The ID exactly should not be found (Test entry of an unknown ID)")
@@ -86,7 +86,7 @@ func TestHandlers(t *testing.T) {
 		MethodGet(rec, req)
 
 		res := rec.Result()
-
+		res.Body.Close()
 		val := res.Header.Get("Location")
 
 		assert.NotEqual(t, targetLink, val, "TEST GET 400 another method")
