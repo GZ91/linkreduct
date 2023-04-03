@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/config"
 	"github.com/GZ91/linkreduct/internal/handlers"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
@@ -13,9 +14,11 @@ func Start(conf *config.Config) (err error) {
 			err = errors.New(r.(string))
 		}
 	}()
-	mux := &http.ServeMux{}
 	handlers.InstallConfig(conf)
-	mux.Handle("/", handlers.Conveyor(http.HandlerFunc(handlers.MethodGet), handlers.MethodPost))
 
-	return http.ListenAndServe(conf.GetAddressServer(), mux)
+	router := chi.NewRouter()
+	router.Get("/{id}", handlers.MethodGet)
+	router.Post("/", handlers.MethodPost)
+
+	return http.ListenAndServe(conf.GetAddressServer(), router)
 }

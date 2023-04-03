@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"github.com/GZ91/linkreduct/internal/config"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -25,8 +27,7 @@ func TestHandlers(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(targetLink))
 
-		methodpost := MethodPost(TestHandler{})
-		methodpost.ServeHTTP(rec, req)
+		MethodPost(rec, req)
 
 		res := rec.Result()
 
@@ -43,8 +44,7 @@ func TestHandlers(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
-		methodpost := MethodPost(TestHandler{})
-		methodpost.ServeHTTP(rec, req)
+		MethodPost(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -52,17 +52,46 @@ func TestHandlers(t *testing.T) {
 	}
 	{ //GET 307
 
-		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/"+id, nil)
+		router := chi.NewRouter()
+		router.Route("/", func(r chi.Router) {
+			r.Get("/{id}", MethodGet)
+			r.Post("/", MethodPost)
+		})
 
-		MethodGet(rec, req)
+		server := httptest.NewServer(router)
+		defer server.Close()
+		client := server.Client()
 
-		res := rec.Result()
-		res.Body.Close()
-		val := res.Header.Get("Location")
+		res, err := http.NewRequest(http.MethodPost, server.URL+"/", strings.NewReader(targetLink))
+		if err != nil {
+			return
+		}
+		result, err := client.Do(res)
+		if err != nil {
+			return
+		}
+		body, _ := io.ReadAll(result.Body)
+		result.Body.Close()
+		strBody := string(body)
+		id = strings.TrimPrefix(strBody, "http://"+configHandler.GetAddressServer()+"/")
+
+		server.CloseClientConnections()
+		resp, err := client.Get(server.URL + "/" + id)
+
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+
+		val := resp.Header.Get("Location")
+		bodyByte, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return
+		}
+		b, _ := strconv.Atoi(string(bodyByte))
 
 		assert.Equal(t, targetLink, val, "TEST GET 307")
-		assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode, "TEST GET 307")
+		assert.Equal(t, http.StatusTemporaryRedirect, b, "TEST GET 307")
 	}
 	{ //GET 400 not found ID
 
