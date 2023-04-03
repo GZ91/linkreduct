@@ -12,10 +12,6 @@ import (
 	"testing"
 )
 
-type TestHandler struct{}
-
-func (t TestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
-
 func TestPostGet(t *testing.T) {
 	InstallConfig(config.New(true, "localhost:8080", 5))
 	targetLink := "google.com"
@@ -30,11 +26,7 @@ func TestPostGet(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 
-	res, err := http.NewRequest(http.MethodPost, server.URL+"/", strings.NewReader(targetLink))
-	if err != nil {
-		return
-	}
-	result, err := client.Do(res)
+	result, err := client.Post(server.URL+"/", "text/html; charset=utf8", strings.NewReader(targetLink))
 	if err != nil {
 		return
 	}
@@ -76,7 +68,7 @@ func TestGet400(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode, "TEST POST 400")
 	}
 
-	{ //GET 400 not found ID
+	{
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
@@ -93,6 +85,8 @@ func TestGet400(t *testing.T) {
 }
 
 func TestPost400(t *testing.T) {
+	InstallConfig(config.New(true, "localhost:8080", 5))
+
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
 	MethodPost(rec, req)
