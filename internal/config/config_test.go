@@ -6,9 +6,10 @@ import (
 
 func TestConfig_GetDebug(t *testing.T) {
 	type fields struct {
-		debug         bool
-		addressServer string
-		maxIterLen    int
+		debug               bool
+		addressServer       string
+		addressServerForURL string
+		maxIterLen          int
 	}
 	tests := []struct {
 		name   string
@@ -18,16 +19,17 @@ func TestConfig_GetDebug(t *testing.T) {
 		{
 			name: "Test1",
 			fields: fields{
-				debug:         true,
-				addressServer: "google.com",
-				maxIterLen:    10,
+				debug:               true,
+				addressServer:       "localhost:8080",
+				addressServerForURL: "localhost:8080",
+				maxIterLen:          10,
 			},
 			want: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.maxIterLen)
+			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.addressServerForURL, tt.fields.maxIterLen)
 
 			if got := r.GetDebug(); got != tt.want {
 				t.Errorf("GetDebug() = %v, want %v", got, tt.want)
@@ -38,9 +40,10 @@ func TestConfig_GetDebug(t *testing.T) {
 
 func TestConfig_GetAddressServer(t *testing.T) {
 	type fields struct {
-		debug         bool
-		addressServer string
-		maxIterLen    int
+		debug               bool
+		addressServer       string
+		addressServerForURL string
+		maxIterLen          int
 	}
 	tests := []struct {
 		name   string
@@ -50,16 +53,17 @@ func TestConfig_GetAddressServer(t *testing.T) {
 		{
 			name: "Test1",
 			fields: fields{
-				debug:         true,
-				addressServer: "google.com",
-				maxIterLen:    10,
+				debug:               true,
+				addressServer:       "localhost:8080",
+				addressServerForURL: "localhost:8080",
+				maxIterLen:          10,
 			},
-			want: "google.com",
+			want: "localhost:8080",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.maxIterLen)
+			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.addressServerForURL, tt.fields.maxIterLen)
 
 			if got := r.GetAddressServer(); got != tt.want {
 				t.Errorf("GetAddressServer() = %s, want %s", got, tt.want)
@@ -70,9 +74,10 @@ func TestConfig_GetAddressServer(t *testing.T) {
 
 func TestConfig_GetMaxIterLen(t *testing.T) {
 	type fields struct {
-		debug         bool
-		addressServer string
-		maxIterLen    int
+		debug               bool
+		addressServer       string
+		addressServerForURL string
+		maxIterLen          int
 	}
 	tests := []struct {
 		name   string
@@ -82,16 +87,17 @@ func TestConfig_GetMaxIterLen(t *testing.T) {
 		{
 			name: "Test1",
 			fields: fields{
-				debug:         true,
-				addressServer: "google.com",
-				maxIterLen:    10,
+				debug:               true,
+				addressServer:       "localhost:8080",
+				addressServerForURL: "localhost:8080",
+				maxIterLen:          10,
 			},
 			want: 10,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.maxIterLen)
+			r := New(tt.fields.debug, tt.fields.addressServer, tt.fields.addressServerForURL, tt.fields.maxIterLen)
 
 			if got := r.GetMaxIterLen(); got != tt.want {
 				t.Errorf("GetMaxIterLen() = %d, want %d", got, tt.want)

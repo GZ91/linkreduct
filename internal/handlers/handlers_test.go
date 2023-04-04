@@ -12,8 +12,12 @@ import (
 	"testing"
 )
 
+func SetupForTesting() {
+	InstallConfig(config.New(true, "localhost:8080", "localhost:8080", 5))
+}
+
 func TestPostGet(t *testing.T) {
-	InstallConfig(config.New(true, "localhost:8080", 5))
+	SetupForTesting()
 	targetLink := "google.com"
 
 	router := chi.NewRouter()
@@ -55,7 +59,7 @@ func TestPostGet(t *testing.T) {
 }
 
 func TestGet400(t *testing.T) {
-	InstallConfig(config.New(true, "localhost:8080", 5))
+	SetupForTesting()
 	targetLink := "google.com"
 
 	{
@@ -85,7 +89,7 @@ func TestGet400(t *testing.T) {
 }
 
 func TestPost400(t *testing.T) {
-	InstallConfig(config.New(true, "localhost:8080", 5))
+	SetupForTesting()
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
