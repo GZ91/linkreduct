@@ -7,7 +7,7 @@ import (
 )
 
 func TestStorageURL(t *testing.T) {
-	conf := config.New(true, "localhost:8080", "localhost:8080", 5)
+	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
 
 	tests := []struct {
 		name string

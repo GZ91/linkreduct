@@ -21,7 +21,7 @@ func TestConfig_GetDebug(t *testing.T) {
 			fields: fields{
 				debug:               true,
 				addressServer:       "localhost:8080",
-				addressServerForURL: "localhost:8080",
+				addressServerForURL: "http://localhost:8081/",
 				maxIterLen:          10,
 			},
 			want: true,
@@ -55,7 +55,7 @@ func TestConfig_GetAddressServer(t *testing.T) {
 			fields: fields{
 				debug:               true,
 				addressServer:       "localhost:8080",
-				addressServerForURL: "localhost:8080",
+				addressServerForURL: "http://localhost:8081/",
 				maxIterLen:          10,
 			},
 			want: "localhost:8080",
@@ -89,7 +89,7 @@ func TestConfig_GetMaxIterLen(t *testing.T) {
 			fields: fields{
 				debug:               true,
 				addressServer:       "localhost:8080",
-				addressServerForURL: "localhost:8080",
+				addressServerForURL: "http://localhost:8081/",
 				maxIterLen:          10,
 			},
 			want: 10,

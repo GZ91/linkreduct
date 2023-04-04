@@ -13,7 +13,7 @@ import (
 )
 
 func SetupForTesting() {
-	InstallConfig(config.New(true, "localhost:8080", "localhost:8080", 5))
+	InstallConfig(config.New(true, "localhost:8080", "http://localhost:8080/", 5))
 }
 
 func TestPostGet(t *testing.T) {
@@ -37,7 +37,7 @@ func TestPostGet(t *testing.T) {
 	body, _ := io.ReadAll(result.Body)
 	result.Body.Close()
 	strBody := string(body)
-	id := strings.TrimPrefix(strBody, configHandler.GetAddressServer())
+	id := strings.TrimPrefix(strBody, configHandler.GetAddressServerURL())
 
 	server.CloseClientConnections()
 	resp, err := client.Get(server.URL + "/" + id)
