@@ -37,7 +37,7 @@ func TestPostGet(t *testing.T) {
 	body, _ := io.ReadAll(result.Body)
 	result.Body.Close()
 	strBody := string(body)
-	id := strings.TrimPrefix(strBody, "http://"+configHandler.GetAddressServer()+"/")
+	id := strings.TrimPrefix(strBody, configHandler.GetAddressServer())
 
 	server.CloseClientConnections()
 	resp, err := client.Get(server.URL + "/" + id)

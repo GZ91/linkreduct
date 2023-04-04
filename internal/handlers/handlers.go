@@ -34,7 +34,7 @@ func MethodPost(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	id := storage.AddURL(string(link), configHandler)
-	bodyText := "http://" + configHandler.GetAddressServerURL() + "/" + id
+	bodyText := configHandler.GetAddressServerURL() + id
 	w.Header().Add("Content-Type", "text/plain")
 	w.Header().Add("Content-Length", fmt.Sprint(len(bodyText)))
 	w.WriteHeader(http.StatusCreated)
