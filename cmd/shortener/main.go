@@ -15,7 +15,7 @@ func main() {
 
 func Configuration() *config.Config {
 	addressServer := flag.String("a", "localhost:8080", "Run Address server")
-	addressServerURL := flag.String("b", "http://localhost:8000/", "Address server for URL")
+	addressServerURL := flag.String("b", "http://localhost:8080/", "Address server for URL")
 	flag.Parse()
 	return config.New(false, *addressServer, *addressServerURL, 10)
 }
