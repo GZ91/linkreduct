@@ -18,8 +18,15 @@ func Configuration() *config.Config {
 	addressServer := flag.String("a", "localhost:8080", "Run Address server")
 	addressServerURL := flag.String("b", "http://localhost:8080/", "Address server for URL")
 
+	flag.Parse()
+
 	strAddress := strings.Split(*addressServerURL, ":")
-	port := strAddress[2]
+	var port string
+	if (len(strAddress)) == 3 {
+		port = strAddress[2]
+	} else {
+		port = ""
+	}
 
 	if len(port) == 0 {
 		port = strings.Split(*addressServer, ":")[1]
