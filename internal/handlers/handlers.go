@@ -29,9 +29,11 @@ func MethodPost(w http.ResponseWriter, r *http.Request) {
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	if string(link) == "" {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	id := storage.AddURL(string(link), configHandler)
 	bodyText := configHandler.GetAddressServerURL() + id
