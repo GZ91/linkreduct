@@ -15,6 +15,13 @@ func main() {
 }
 
 func Configuration() *config.Config {
+
+	addressServer, addressServerForURL := ReadFlags()
+	return config.New(false, addressServer, addressServerForURL, 10)
+
+}
+
+func ReadFlags() (string, string) {
 	addressServer := flag.String("a", "localhost:8080", "Run Address server")
 	addressServerURL := flag.String("b", "http://localhost:8080/", "Address server for URL")
 
@@ -35,6 +42,6 @@ func Configuration() *config.Config {
 		port = port + "/"
 	}
 
-	flag.Parse()
-	return config.New(false, *addressServer, strAddress[0]+":"+strAddress[1]+":"+port, 10)
+	addressServerForURL := strAddress[0] + ":" + strAddress[1] + ":" + port
+	return *addressServer, addressServerForURL
 }
