@@ -17,13 +17,6 @@ func InstallConfig(conf *config.Config) {
 
 type Middleware func(http.Handler) http.Handler
 
-func Conveyor(h http.Handler, middlewares ...Middleware) http.Handler {
-	for _, middleware := range middlewares {
-		h = middleware(h)
-	}
-	return h
-}
-
 func MethodPost(w http.ResponseWriter, r *http.Request) {
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
