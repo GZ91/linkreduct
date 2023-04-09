@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 var configHandler *config.Config
@@ -47,12 +46,7 @@ func MethodGet(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if link, ok := storage.GetURL(id); ok {
 		w.Header().Add("Location", link)
-		if configHandler.GetDebug() {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(strconv.Itoa(http.StatusTemporaryRedirect)))
-		} else {
-			w.WriteHeader(http.StatusTemporaryRedirect)
-		}
+		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}

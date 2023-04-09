@@ -1,13 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/GZ91/linkreduct/internal/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -28,7 +28,14 @@ func TestPostGet(t *testing.T) {
 
 	server := httptest.NewServer(router)
 	defer server.Close()
+
+	errRedirectBlocked := errors.New("HTTP redirect blocked")
+
 	client := server.Client()
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errRedirectBlocked
+	}
 
 	result, err := client.Post(server.URL+"/", "text/html; charset=utf8", strings.NewReader(targetLink))
 	if err != nil {
@@ -37,25 +44,23 @@ func TestPostGet(t *testing.T) {
 	body, _ := io.ReadAll(result.Body)
 	result.Body.Close()
 	strBody := string(body)
-	id := strings.TrimPrefix(strBody, configHandler.GetAddressServerURL())
+	id := strings.TrimPrefix(strBody, "http://localhost:8080/")
 
 	server.CloseClientConnections()
 	resp, err := client.Get(server.URL + "/" + id)
 
 	if err != nil {
-		return
+		if !errors.Is(err, errRedirectBlocked) {
+			return
+		}
 	}
 	defer resp.Body.Close()
 
 	val := resp.Header.Get("Location")
-	bodyByte, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-	b, _ := strconv.Atoi(string(bodyByte))
+	io.Copy(io.Discard, resp.Body)
 
 	assert.Equal(t, targetLink, val, "TEST GET 307")
-	assert.Equal(t, http.StatusTemporaryRedirect, b, "TEST GET 307")
+	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "TEST GET 307")
 }
 
 func TestGet400(t *testing.T) {
