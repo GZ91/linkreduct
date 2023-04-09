@@ -16,6 +16,11 @@ func main() {
 }
 
 func Configuration() *config.Config {
+	addressServer, addressServerForURL := GetAddressesServer()
+	return config.New(false, addressServer, addressServerForURL, 10)
+}
+
+func GetAddressesServer() (string, string) {
 	var (
 		addressServerFlag       string
 		addressServerForURLFlag string
@@ -45,8 +50,7 @@ func Configuration() *config.Config {
 		addressServerForURL = addressServerForURLEnv
 	}
 	addressServerForURL = CheckChangeBaseURL(addressServer, addressServerForURL)
-	return config.New(false, addressServer, addressServerForURL, 10)
-
+	return addressServer, addressServerForURL
 }
 
 func ReadFlags() (string, string) {

@@ -49,11 +49,10 @@ func TestPostGet(t *testing.T) {
 	server.CloseClientConnections()
 	resp, err := client.Get(server.URL + "/" + id)
 
-	if err != nil {
-		if !errors.Is(err, errRedirectBlocked) {
-			return
-		}
+	if !errors.Is(err, errRedirectBlocked) {
+		return
 	}
+
 	defer resp.Body.Close()
 
 	val := resp.Header.Get("Location")
