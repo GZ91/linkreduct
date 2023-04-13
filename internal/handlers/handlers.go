@@ -17,7 +17,7 @@ func InstallConfig(conf *config.Config) {
 
 type Middleware func(http.Handler) http.Handler
 
-func MethodPost(w http.ResponseWriter, r *http.Request) {
+func AddLongLink(w http.ResponseWriter, r *http.Request) {
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -29,15 +29,19 @@ func MethodPost(w http.ResponseWriter, r *http.Request) {
 	}
 	id := storage.AddURL(string(link), configHandler)
 	bodyText := configHandler.GetAddressServerURL() + id
+	if bodyText == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.Header().Add("Content-Type", "text/plain")
 	w.Header().Add("Content-Length", fmt.Sprint(len(bodyText)))
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(bodyText))
 }
 
-func MethodGet(w http.ResponseWriter, r *http.Request) {
+func GetShortURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if link, ok := storage.GetURL(id); ok {
+	if link, ok := storage.DB.GetURL(id); ok {
 		w.Header().Add("Location", link)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {

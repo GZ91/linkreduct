@@ -19,22 +19,17 @@ type db struct {
 	mutex sync.Mutex
 }
 
-func (r *db) SetDB(key, value string) bool {
+func (r *db) setDB(key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.data[key] = value
 	return true
 }
 
-func (r *db) GetDB(key string) (val string, ok bool) {
+func (r *db) GetURL(key string) (val string, ok bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	val, ok = r.data[key]
-	return
-}
-
-func GetURL(id string) (val string, found bool) {
-	val, found = DB.GetDB(id)
 	return
 }
 
@@ -47,11 +42,11 @@ func AddURL(url string, config *config.Config) string {
 			lenID++
 		}
 		idString := genrunes.RandStringRunes(lenID)
-		if _, found := DB.GetDB(idString); found {
+		if _, found := DB.GetURL(idString); found {
 			iterLen++
 			continue
 		}
-		DB.SetDB(idString, url)
+		DB.setDB(idString, url)
 		return idString
 	}
 }

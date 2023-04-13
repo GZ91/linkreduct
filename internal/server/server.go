@@ -17,8 +17,8 @@ func Start(conf *config.Config) (err error) {
 	handlers.InstallConfig(conf)
 
 	router := chi.NewRouter()
-	router.Get("/{id}", handlers.MethodGet)
-	router.Post("/", handlers.MethodPost)
+	router.Get("/{id}", handlers.GetShortURL)
+	router.Post("/", handlers.AddLongLink)
 	return http.ListenAndServe(conf.GetAddressServer(), router)
 
 }

@@ -22,8 +22,8 @@ func TestPostGet(t *testing.T) {
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		r.Get("/{id}", MethodGet)
-		r.Post("/", MethodPost)
+		r.Get("/{id}", GetShortURL)
+		r.Post("/", AddLongLink)
 	})
 
 	server := httptest.NewServer(router)
@@ -69,7 +69,7 @@ func TestGet400(t *testing.T) {
 	{
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
-		MethodPost(rec, req)
+		AddLongLink(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -81,7 +81,7 @@ func TestGet400(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
 
-		MethodGet(rec, req)
+		GetShortURL(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -97,7 +97,7 @@ func TestPost400(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
-	MethodPost(rec, req)
+	AddLongLink(rec, req)
 
 	res := rec.Result()
 	res.Body.Close()

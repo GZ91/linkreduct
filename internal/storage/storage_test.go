@@ -34,7 +34,7 @@ func TestStorageURL(t *testing.T) {
 			if id == "" {
 				t.Fatalf("no id when saving the link")
 			}
-			URL, found := GetURL(id)
+			URL, found := DB.GetURL(id)
 			if !found {
 				t.Fatalf("the saved link was not found")
 			}
