@@ -2,8 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/GZ91/linkreduct/internal/api/http/server"
 	"github.com/GZ91/linkreduct/internal/config"
-	"github.com/GZ91/linkreduct/internal/server"
 )
 
 var appLink *app

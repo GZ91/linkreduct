@@ -1,22 +1,22 @@
 package storage
 
 import (
-	"github.com/GZ91/linkreduct/internal/config"
-	"github.com/GZ91/linkreduct/internal/genrunes"
+	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"sync"
 )
 
-func init() {
-	DB = &db{
-		data: make(map[string]string, 1),
-	}
+type ConfigerStorage interface {
+	GetMaxIterLen() int
 }
 
-var DB *db
+func New(conf ConfigerStorage) *db {
+	return &db{data: make(map[string]string, 1), config: conf}
+}
 
 type db struct {
-	data  map[string]string
-	mutex sync.Mutex
+	data   map[string]string
+	config ConfigerStorage
+	mutex  sync.Mutex
 }
 
 func (r *db) setDB(key, value string) bool {
@@ -33,20 +33,20 @@ func (r *db) GetURL(key string) (val string, ok bool) {
 	return
 }
 
-func AddURL(url string, config *config.Config) string {
+func (r *db) AddURL(url string) string {
 	lenID := 5
 	iterLen := 0
-	MaxIterLen := config.GetMaxIterLen()
+	MaxIterLen := r.config.GetMaxIterLen()
 	for {
 		if iterLen == MaxIterLen {
 			lenID++
 		}
 		idString := genrunes.RandStringRunes(lenID)
-		if _, found := DB.GetURL(idString); found {
+		if _, found := r.GetURL(idString); found {
 			iterLen++
 			continue
 		}
-		DB.setDB(idString, url)
+		r.setDB(idString, url)
 		return idString
 	}
 }

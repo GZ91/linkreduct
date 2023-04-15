@@ -3,6 +3,8 @@ package handlers
 import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/config"
+	"github.com/GZ91/linkreduct/internal/service"
+	"github.com/GZ91/linkreduct/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -12,8 +14,14 @@ import (
 	"testing"
 )
 
+var handls *handlers
+
 func SetupForTesting() {
-	InstallConfig(config.New(true, "localhost:8080", "http://localhost:8080/", 5))
+	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
+
+	NodeStorage := storage.New(conf)
+	NodeService := service.New(NodeStorage, conf)
+	handls = New(NodeService)
 }
 
 func TestPostGet(t *testing.T) {
@@ -22,8 +30,8 @@ func TestPostGet(t *testing.T) {
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		r.Get("/{id}", GetShortURL)
-		r.Post("/", AddLongLink)
+		r.Get("/{id}", handls.GetShortURL)
+		r.Post("/", handls.AddLongLink)
 	})
 
 	server := httptest.NewServer(router)
@@ -69,7 +77,7 @@ func TestGet400(t *testing.T) {
 	{
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
-		AddLongLink(rec, req)
+		handls.AddLongLink(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -81,7 +89,7 @@ func TestGet400(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
 
-		GetShortURL(rec, req)
+		handls.GetShortURL(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -97,7 +105,7 @@ func TestPost400(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
-	AddLongLink(rec, req)
+	handls.AddLongLink(rec, req)
 
 	res := rec.Result()
 	res.Body.Close()

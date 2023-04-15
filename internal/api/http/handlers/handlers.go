@@ -2,22 +2,25 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/GZ91/linkreduct/internal/config"
-	"github.com/GZ91/linkreduct/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 )
 
-var configHandler *config.Config
-
-func InstallConfig(conf *config.Config) {
-	configHandler = conf
+type handlerserService interface {
+	GetSmallLink(string) string
+	GetURL(string) (string, bool)
 }
 
-type Middleware func(http.Handler) http.Handler
+type handlers struct {
+	nodeService handlerserService
+}
 
-func AddLongLink(w http.ResponseWriter, r *http.Request) {
+func New(nodeService handlerserService) *handlers {
+	return &handlers{nodeService: nodeService}
+}
+
+func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -27,8 +30,7 @@ func AddLongLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	id := storage.AddURL(string(link), configHandler)
-	bodyText := configHandler.GetAddressServerURL() + id
+	bodyText := h.nodeService.GetSmallLink(string(link))
 	if bodyText == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -39,9 +41,9 @@ func AddLongLink(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(bodyText))
 }
 
-func GetShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if link, ok := storage.DB.GetURL(id); ok {
+	if link, ok := h.nodeService.GetURL(id); ok {
 		w.Header().Add("Location", link)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
