@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/GZ91/linkreduct/internal/config"
+	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

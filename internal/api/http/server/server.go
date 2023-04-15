@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
-	"github.com/GZ91/linkreduct/internal/config"
+	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/storage"
 	"github.com/go-chi/chi/v5"

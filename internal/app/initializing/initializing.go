@@ -1,9 +1,9 @@
 package initializing
 
 import (
-	"github.com/GZ91/linkreduct/internal/config"
-	"github.com/GZ91/linkreduct/internal/initializing/envs"
-	"github.com/GZ91/linkreduct/internal/initializing/flags"
+	"github.com/GZ91/linkreduct/internal/app/config"
+	"github.com/GZ91/linkreduct/internal/app/initializing/envs"
+	"github.com/GZ91/linkreduct/internal/app/initializing/flags"
 	"strings"
 )
 
