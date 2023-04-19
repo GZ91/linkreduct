@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
-	"github.com/GZ91/linkreduct/internal/storage"
+	"github.com/GZ91/linkreduct/internal/storage/inmemory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -19,7 +19,7 @@ var handls *handlers
 func SetupForTesting() {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
 
-	NodeStorage := storage.New(conf)
+	NodeStorage := inmemory.New(conf)
 	NodeService := service.New(NodeStorage, conf)
 	handls = New(NodeService)
 }

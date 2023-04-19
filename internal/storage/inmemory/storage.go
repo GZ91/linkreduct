@@ -1,4 +1,4 @@
-package storage
+package inmemory
 
 import (
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
