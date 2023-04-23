@@ -58,12 +58,12 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	type url struct {
-		Url string `json:"url"`
+	type requestData struct {
+		URL string `json:"url"`
 	}
-	var URL url
-	json.Unmarshal(textBody, &URL)
-	link := URL.Url
+	var data requestData
+	json.Unmarshal(textBody, &data)
+	link := data.URL
 
 	if link == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -90,7 +90,7 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Header().Add("Content-Type", "text/plain")
+	w.Header().Add("Content-Type", "application/json")
 	w.Header().Add("Content-Length", fmt.Sprint(len(res)))
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
