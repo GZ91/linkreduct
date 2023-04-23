@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"io"
@@ -49,4 +50,48 @@ func (h *handlers) GetShortURL(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
+}
+
+func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
+	textBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	type url struct {
+		Url string `json:"url"`
+	}
+	var URL url
+	json.Unmarshal(textBody, &URL)
+	link := URL.Url
+
+	if link == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	bodyText := h.nodeService.GetSmallLink(link)
+	if bodyText == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	type result struct {
+		Result string `json:"result"`
+	}
+
+	Result := result{Result: bodyText}
+
+	res, err := json.Marshal(Result)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	if len(res) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "text/plain")
+	w.Header().Add("Content-Length", fmt.Sprint(len(res)))
+	w.WriteHeader(http.StatusCreated)
+	w.Write(res)
 }

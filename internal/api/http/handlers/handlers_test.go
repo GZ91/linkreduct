@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
@@ -16,15 +17,7 @@ import (
 
 var handls *handlers
 
-func SetupForTesting() {
-	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
-
-	NodeStorage := inmemory.New(conf)
-	NodeService := service.New(NodeStorage, conf)
-	handls = New(NodeService)
-}
-
-func TestPostGet(t *testing.T) {
+func Test_handlers_AddLongLink(t *testing.T) {
 	SetupForTesting()
 	targetLink := "google.com"
 
@@ -57,8 +50,8 @@ func TestPostGet(t *testing.T) {
 	server.CloseClientConnections()
 	resp, err := client.Get(server.URL + "/" + id)
 
-	if !errors.Is(err, errRedirectBlocked) {
-		return
+	if err != nil {
+		assert.Equal(t, true, errors.Is(err, errRedirectBlocked))
 	}
 
 	defer resp.Body.Close()
@@ -110,4 +103,64 @@ func TestPost400(t *testing.T) {
 	res := rec.Result()
 	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "TEST POST 400")
+}
+
+func Test_handlers_AddLongLinkJSON(t *testing.T) {
+	SetupForTesting()
+	targetLink := "https://practicum.yandex.ru"
+
+	router := chi.NewRouter()
+	router.Route("/", func(r chi.Router) {
+		r.Get("/{id}", handls.GetShortURL)
+		r.Post("/api/shorten", handls.AddLongLinkJSON)
+	})
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	errRedirectBlocked := errors.New("HTTP redirect blocked")
+
+	client := server.Client()
+
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return errRedirectBlocked
+	}
+
+	result, err := client.Post(server.URL+"/api/shorten", "text/html; charset=utf8", strings.NewReader(`{"url": "https://practicum.yandex.ru"} `))
+	if err != nil {
+		return
+	}
+	body, _ := io.ReadAll(result.Body)
+	type resType struct {
+		Result string `json:"result"`
+	}
+	var res resType
+	json.Unmarshal(body, &res)
+
+	result.Body.Close()
+
+	id := strings.TrimPrefix(res.Result, "http://localhost:8080/")
+
+	server.CloseClientConnections()
+	resp, err := client.Get(server.URL + "/" + id)
+
+	if err != nil {
+		assert.Equal(t, true, errors.Is(err, errRedirectBlocked))
+	}
+
+	defer resp.Body.Close()
+
+	val := resp.Header.Get("Location")
+	io.Copy(io.Discard, resp.Body)
+
+	assert.Equal(t, targetLink, val, "TEST GET 307")
+	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "TEST GET 307")
+}
+
+func SetupForTesting() {
+	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
+
+	NodeStorage := inmemory.New(conf)
+	NodeService := service.New(NodeStorage, conf)
+	handls = New(NodeService)
 }

@@ -25,6 +25,7 @@ func Start(conf *config.Config) (err error) {
 	router := chi.NewRouter()
 	router.Get("/{id}", middleware.WithLogging(handls.GetShortURL))
 	router.Post("/", middleware.WithLogging(handls.AddLongLink))
+	router.Post("/api/shorten", middleware.WithLogging(handls.AddLongLinkJSON))
 	return http.ListenAndServe(conf.GetAddressServer(), router)
 
 }
