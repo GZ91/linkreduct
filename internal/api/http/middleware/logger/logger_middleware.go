@@ -1,4 +1,4 @@
-package middleware
+package logger
 
 import (
 	"github.com/GZ91/linkreduct/internal/app/logger"
@@ -29,7 +29,7 @@ func (r *loggingResoinseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-func WithLogging(h http.HandlerFunc) http.HandlerFunc {
+func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -46,5 +46,5 @@ func WithLogging(h http.HandlerFunc) http.HandlerFunc {
 			zap.Int("size", lw.responseData.size),
 		)
 	}
-	return logFn
+	return http.HandlerFunc(logFn)
 }
