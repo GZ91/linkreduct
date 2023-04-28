@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
+	"github.com/GZ91/linkreduct/internal/api/http/middleware/add_size"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
 	"github.com/GZ91/linkreduct/internal/app/config"
@@ -24,6 +25,7 @@ func Start(conf *config.Config) (err error) {
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()
+	router.Use(add_size.CalculateSize)
 	router.Use(logger.WithLogging)
 	router.Use(compress.Compress)
 

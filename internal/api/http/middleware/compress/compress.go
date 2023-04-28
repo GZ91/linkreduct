@@ -22,19 +22,20 @@ func (c Compression) Write(p []byte) (int, error) {
 func Compress(h http.Handler) http.Handler {
 	compMid := func(w http.ResponseWriter, r *http.Request) {
 
+		comp := Compression{w, w}
+
 		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 
 			logger.Log.Info("middleware_Compress", zap.String("status", "decompression added - gzip"))
 
 			reader, err := gzip.NewReader(r.Body)
-			defer reader.Close()
-
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				logger.Log.Error("middleware_Compress", zap.String("error", err.Error()))
 				return
 			}
+			defer reader.Close()
 			r.Body = reader
 
 		}
@@ -67,13 +68,9 @@ func Compress(h http.Handler) http.Handler {
 			defer gz.Close()
 
 			w.Header().Add("Content-Encoding", "gzip")
-			h.ServeHTTP(Compression{w, gz}, r)
-
-		} else {
-
-			h.ServeHTTP(w, r)
-
+			comp.Writer = gz
 		}
+		h.ServeHTTP(comp, r)
 
 	}
 

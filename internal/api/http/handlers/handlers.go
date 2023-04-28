@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
@@ -37,7 +36,6 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "text/plain")
-	w.Header().Add("Content-Length", fmt.Sprint(len(bodyText)))
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(bodyText))
 }
@@ -91,7 +89,6 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Content-Length", fmt.Sprint(len(res)))
 	w.WriteHeader(http.StatusCreated)
 	w.Write(res)
 }
