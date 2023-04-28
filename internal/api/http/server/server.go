@@ -27,7 +27,7 @@ func Start(conf *config.Config) (err error) {
 	router := chi.NewRouter()
 	router.Use(sizemiddleware.CalculateSize)
 	router.Use(loggermiddleware.WithLogging)
-	router.Use(compressMiddleware.Compress)
+	router.Use(compressmiddleware.Compress)
 
 	router.Get("/{id}", handls.GetShortURL)
 	router.Post("/", handls.AddLongLink)
