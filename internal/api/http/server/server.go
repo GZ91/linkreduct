@@ -5,7 +5,7 @@ import (
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
-	sizeMiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/size_middleware"
+	"github.com/GZ91/linkreduct/internal/api/http/middleware/size"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/storage/inmemory"
@@ -25,8 +25,8 @@ func Start(conf *config.Config) (err error) {
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()
-	router.Use(sizeMiddleware.CalculateSize)
-	router.Use(loggerMiddleware.WithLogging)
+	router.Use(sizemiddleware.CalculateSize)
+	router.Use(loggermiddleware.WithLogging)
 	router.Use(compressMiddleware.Compress)
 
 	router.Get("/{id}", handls.GetShortURL)

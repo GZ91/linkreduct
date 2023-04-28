@@ -1,4 +1,4 @@
-package sizeMiddleware
+package sizemiddleware
 
 import (
 	"net/http"
