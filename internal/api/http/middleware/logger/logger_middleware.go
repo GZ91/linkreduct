@@ -1,4 +1,4 @@
-package logger
+package loggerMiddleware
 
 import (
 	"github.com/GZ91/linkreduct/internal/app/logger"

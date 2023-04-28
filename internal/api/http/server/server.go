@@ -3,9 +3,9 @@ package server
 import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
-	"github.com/GZ91/linkreduct/internal/api/http/middleware/add_size"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
+	sizeMiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/size_middleware"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/storage/inmemory"
@@ -25,9 +25,9 @@ func Start(conf *config.Config) (err error) {
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()
-	router.Use(add_size.CalculateSize)
-	router.Use(logger.WithLogging)
-	router.Use(compress.Compress)
+	router.Use(sizeMiddleware.CalculateSize)
+	router.Use(loggerMiddleware.WithLogging)
+	router.Use(compressMiddleware.Compress)
 
 	router.Get("/{id}", handls.GetShortURL)
 	router.Post("/", handls.AddLongLink)
