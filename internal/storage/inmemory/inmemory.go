@@ -1,7 +1,6 @@
 package inmemory
 
 import (
-	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"sync"
 )
 
@@ -9,13 +8,18 @@ type ConfigerStorage interface {
 	GetMaxIterLen() int
 }
 
-func New(conf ConfigerStorage) *db {
-	return &db{data: make(map[string]string, 1), config: conf}
+type GeneratorRunes interface {
+	RandStringRunes(int) string
+}
+
+func New(conf ConfigerStorage, genrun GeneratorRunes) *db {
+	return &db{data: make(map[string]string, 1), config: conf, genrun: genrun}
 }
 
 type db struct {
 	data   map[string]string
 	config ConfigerStorage
+	genrun GeneratorRunes
 	mutex  sync.Mutex
 }
 
@@ -41,7 +45,7 @@ func (r *db) AddURL(url string) string {
 		if iterLen == MaxIterLen {
 			lenID++
 		}
-		idString := genrunes.RandStringRunes(lenID)
+		idString := r.genrun.RandStringRunes(lenID)
 		if _, found := r.GetURL(idString); found {
 			iterLen++
 			continue

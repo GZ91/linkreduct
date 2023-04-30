@@ -2,13 +2,15 @@ package inmemory
 
 import (
 	"github.com/GZ91/linkreduct/internal/app/config"
+	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestStorageURL(t *testing.T) {
-	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
-	db := New(conf)
+	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "C:\\Users\\Georgiy\\Desktop\\GO\\linkreduct\\info.txt")
+	genrun := genrunes.New()
+	db := New(conf, genrun)
 
 	tests := []struct {
 		name string

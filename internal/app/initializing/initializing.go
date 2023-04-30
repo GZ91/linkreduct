@@ -9,17 +9,17 @@ import (
 )
 
 func Configuration() *config.Config {
-	addressServer, addressServerForURL, logLvl := ReadParams()
+	addressServer, addressServerForURL, logLvl, pathFileStorage := ReadParams()
 	logger.Initializing(logLvl)
-	return config.New(false, addressServer, addressServerForURL, 10)
+	return config.New(false, addressServer, addressServerForURL, 10, 5, pathFileStorage)
 }
 
-func ReadParams() (string, string, string) {
+func ReadParams() (string, string, string, string) {
 
-	addressServer, addressServerForURL, logLvl := envs.ReadEnv()
+	addressServer, addressServerForURL, logLvl, pathFileStorage := envs.ReadEnv()
 
 	if addressServer == "" || addressServerForURL == "" || logLvl == "" {
-		addressServerFlag, addressServerForURLFlag, logLvlFlag := flags.ReadFlags()
+		addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag := flags.ReadFlags()
 		if addressServer == "" {
 			addressServer = addressServerFlag
 		}
@@ -29,10 +29,13 @@ func ReadParams() (string, string, string) {
 		if logLvl == "" {
 			logLvl = logLvlFlag
 		}
+		if pathFileStorage == "" {
+			pathFileStorage = pathFileStorageFlag
+		}
 	}
 
 	addressServerForURL = CheckChangeBaseURL(addressServer, addressServerForURL)
-	return addressServer, addressServerForURL, logLvl
+	return addressServer, addressServerForURL, logLvl, pathFileStorage
 }
 
 func CheckChangeBaseURL(addressServer, addressServerURL string) string {

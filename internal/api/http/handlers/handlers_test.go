@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service"
+	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/inmemory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -158,9 +159,10 @@ func Test_handlers_AddLongLinkJSON(t *testing.T) {
 }
 
 func SetupForTesting() {
-	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5)
+	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "C:\\Users\\Georgiy\\Desktop\\GO\\linkreduct\\info.txt")
 
-	NodeStorage := inmemory.New(conf)
+	genrun := genrunes.New()
+	NodeStorage := inmemory.New(conf, genrun)
 	NodeService := service.New(NodeStorage, conf)
 	handls = New(NodeService)
 }

@@ -6,6 +6,7 @@ import (
 )
 
 func TestRandStringRunes(t *testing.T) {
-	id := RandStringRunes(10)
+	genrun := New()
+	id := genrun.RandStringRunes(10)
 	assert.Equal(t, 10, len(id))
 }

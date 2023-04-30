@@ -9,7 +9,8 @@ import (
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/app/signalreception"
 	"github.com/GZ91/linkreduct/internal/service"
-	"github.com/GZ91/linkreduct/internal/storage/inmemory"
+	"github.com/GZ91/linkreduct/internal/service/genrunes"
+	"github.com/GZ91/linkreduct/internal/storage/infile"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -24,7 +25,8 @@ func Start(conf *config.Config) (er error) {
 		}
 	}()
 
-	NodeStorage := inmemory.New(conf)
+	GeneratorRunes := genrunes.New()
+	NodeStorage := infile.New(GeneratorRunes, conf)
 	NodeService := service.New(NodeStorage, conf)
 	handls := handlers.New(NodeService)
 
@@ -43,7 +45,10 @@ func Start(conf *config.Config) (er error) {
 
 	wg := sync.WaitGroup{}
 
-	go signalreception.OnClose(&Server, &wg, "server")
+	go signalreception.OnClose([]signalreception.Closer{
+		&signalreception.Stopper{CloserInterf: &Server, Name: "server"},
+		&signalreception.Stopper{CloserInterf: NodeStorage, Name: "node storage"}},
+		&wg)
 
 	if err := Server.ListenAndServe(); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {

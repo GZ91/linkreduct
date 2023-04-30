@@ -9,11 +9,25 @@ import (
 	"syscall"
 )
 
-type closer interface {
+type CloserInterf interface {
 	Close() error
 }
 
-func OnClose(server closer, wg *sync.WaitGroup, nameSystem string) {
+type Stopper struct {
+	CloserInterf
+	Name string
+}
+
+func (s Stopper) GetName() string {
+	return s.Name
+}
+
+type Closer interface {
+	Close() error
+	GetName() string
+}
+
+func OnClose(players []Closer, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
@@ -22,11 +36,13 @@ func OnClose(server closer, wg *sync.WaitGroup, nameSystem string) {
 	for sig := range c {
 		switch sig {
 		case syscall.SIGINT:
-			if err := server.Close(); err != nil {
-				logger.Log.Error(nameSystem+" stop error", zap.String("error", err.Error()))
-				return
+			for _, player := range players {
+				if err := player.Close(); err != nil {
+					logger.Log.Error(player.GetName()+" close error", zap.String("error", err.Error()))
+				} else {
+					logger.Log.Info(player.GetName()+" close", zap.String("status", sig.String()))
+				}
 			}
-			logger.Log.Info(nameSystem+" stoped", zap.String("status", sig.String()))
 			return
 		default:
 			logger.Log.Info("there was a signal", zap.String("status", sig.String()))
