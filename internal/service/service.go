@@ -1,10 +1,16 @@
 package service
 
+// Storeger
+//
+//go:generate mockery --name Storeger --with-expecter
 type Storeger interface {
 	AddURL(string) string
 	GetURL(string) (string, bool)
 }
 
+// Storeger
+//
+//go:generate mockery --name ConfigerService --with-expecter
 type ConfigerService interface {
 	GetAddressServerURL() string
 }

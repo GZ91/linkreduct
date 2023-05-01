@@ -3,7 +3,7 @@ package infile
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/GZ91/linkreduct/internal/app/config"
+	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/pkg/errors"
@@ -17,7 +17,13 @@ type GeneratorRunes interface {
 	RandStringRunes(int) string
 }
 
-func New(gen GeneratorRunes, conf *config.Config) *db {
+type ConfigerStorage interface {
+	GetMaxIterLen() int
+	GetNameFileStorage() string
+	GetStartLenShortLink() int
+}
+
+func New(gen GeneratorRunes, conf ConfigerStorage) *db {
 	DB := &db{
 		generatorRunes: gen,
 		conf:           conf,
@@ -29,7 +35,7 @@ func New(gen GeneratorRunes, conf *config.Config) *db {
 
 type db struct {
 	generatorRunes GeneratorRunes
-	conf           *config.Config
+	conf           ConfigerStorage
 	mutex          sync.Mutex
 	data           map[string]models.StructURL
 	newdata        []string
@@ -61,6 +67,15 @@ func (r *db) AddURL(url string) string {
 }
 
 func (r *db) save() (errs error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if errs == nil {
+				errs = errors.New(fmt.Sprint(rec))
+			} else {
+				errors.Wrap(errs, fmt.Sprint(rec))
+			}
+		}
+	}()
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	nameFile := r.conf.GetNameFileStorage()
@@ -80,8 +95,13 @@ func (r *db) save() (errs error) {
 
 	var ovLen int
 	var count int
+
 	for _, shorURL := range r.newdata {
-		val := r.data[shorURL]
+		val, ok := r.data[shorURL]
+		if !ok {
+			logger.Log.Error("record was added to the array of new, but was not found in the storage map")
+			continue
+		}
 		data, err := json.Marshal(val)
 		if err != nil {
 			logger.Log.Error("when serializing data to json", zap.String("error", err.Error()))
