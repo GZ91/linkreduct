@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"os"
 	"reflect"
-	"sync"
 	"testing"
 )
 
@@ -18,7 +17,6 @@ func Test_db_GetURL(t *testing.T) {
 	type fields struct {
 		generatorRunes GeneratorRunes
 		conf           *config.Config
-		mutex          sync.Mutex
 		data           map[string]models.StructURL
 		newdata        []string
 	}
@@ -64,7 +62,6 @@ func Test_db_GetURL(t *testing.T) {
 			r := &db{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
-				mutex:          tt.fields.mutex,
 				data:           tt.fields.data,
 				newdata:        tt.fields.newdata,
 			}
@@ -85,7 +82,6 @@ func Test_db_save(t *testing.T) {
 	type fields struct {
 		generatorRunes GeneratorRunes
 		conf           *config.Config
-		mutex          sync.Mutex
 		data           map[string]models.StructURL
 		newdata        []string
 	}
@@ -146,7 +142,6 @@ func Test_db_save(t *testing.T) {
 			r := &db{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
-				mutex:          tt.fields.mutex,
 				data:           tt.fields.data,
 				newdata:        tt.fields.newdata,
 			}
