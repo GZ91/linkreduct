@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"regexp"
 )
 
 type handlerserService interface {
@@ -30,16 +31,11 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if string(link) == "" {
+	reg := regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?([^:\/\n]+)`)
+	if !reg.MatchString(string(link)) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	//_, err = url.ParseRequestURI(string(link))
-	//if err != nil {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte(err.Error()))
-	//	return
-	//}
 
 	bodyText := h.nodeService.GetSmallLink(string(link))
 	if bodyText == "" {
@@ -82,16 +78,11 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 
 	link := data.URL
 
-	if string(link) == "" {
+	reg := regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?([^:\/\n]+)`)
+	if !reg.MatchString(link) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	//_, err = url.ParseRequestURI(link)
-	//if err != nil {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte(err.Error()))
-	//	return
-	//}
 
 	bodyText := h.nodeService.GetSmallLink(link)
 	if bodyText == "" {

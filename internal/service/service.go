@@ -1,5 +1,9 @@
 package service
 
+import (
+	"regexp"
+)
+
 // Storeger
 //
 //go:generate mockery --name Storeger --with-expecter
@@ -33,6 +37,10 @@ func (r *NodeService) addURL(link string) string {
 }
 
 func (r *NodeService) GetSmallLink(longLink string) string {
+	reg := regexp.MustCompile(`^(?:https?:\/\/)(?:[^@\/\n]+@)?(?:www\.)?([^:\/\n]+)`)
+	if !reg.MatchString(longLink) {
+		longLink = "http://" + longLink
+	}
 	id := r.addURL(longLink)
 	return r.conf.GetAddressServerURL() + id
 }
