@@ -29,7 +29,7 @@ func TestNodeService_GetURL(t *testing.T) {
 			args: args{
 				id: "sdfsg",
 			},
-			want:  "google.com",
+			want:  "http://google.com",
 			want1: true,
 		},
 		{
@@ -41,7 +41,7 @@ func TestNodeService_GetURL(t *testing.T) {
 			args: args{
 				id: "",
 			},
-			want:  "google.com",
+			want:  "http://google.com",
 			want1: false,
 		},
 	}
@@ -86,7 +86,7 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 				conf: mocks.NewConfigerService(t),
 			},
 			args: args{
-				longLink: "google.com",
+				longLink: "http://google.com",
 			},
 			wantDB:   "sdfjkkf",
 			wantConf: "http://192.168.23.1:8080/",

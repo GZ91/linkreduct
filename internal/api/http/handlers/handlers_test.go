@@ -20,7 +20,7 @@ var handls *handlers
 
 func Test_handlers_AddLongLink(t *testing.T) {
 	SetupForTesting()
-	targetLink := "google.com"
+	targetLink := "http://google.com"
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -66,7 +66,7 @@ func Test_handlers_AddLongLink(t *testing.T) {
 
 func TestGet400(t *testing.T) {
 	SetupForTesting()
-	targetLink := "google.com"
+	targetLink := "http://google.com"
 
 	{
 		rec := httptest.NewRecorder()
