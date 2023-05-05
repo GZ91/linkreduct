@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
-	"net/url"
 )
 
 type handlerserService interface {
@@ -31,12 +30,12 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = url.ParseRequestURI(string(link))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
+	//_, err = url.ParseRequestURI(string(link))
+	//if err != nil {
+	//	w.WriteHeader(http.StatusBadRequest)
+	//	w.Write([]byte(err.Error()))
+	//	return
+	//}
 
 	bodyText := h.nodeService.GetSmallLink(string(link))
 	if bodyText == "" {
@@ -79,12 +78,12 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 
 	link := data.URL
 
-	_, err = url.ParseRequestURI(link)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-		return
-	}
+	//_, err = url.ParseRequestURI(link)
+	//if err != nil {
+	//	w.WriteHeader(http.StatusBadRequest)
+	//	w.Write([]byte(err.Error()))
+	//	return
+	//}
 
 	bodyText := h.nodeService.GetSmallLink(link)
 	if bodyText == "" {
