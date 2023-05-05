@@ -37,7 +37,7 @@ func (r *NodeService) addURL(link string) string {
 }
 
 func (r *NodeService) GetSmallLink(longLink string) string {
-	reg := regexp.MustCompile(`^(?:https?:\/\/)(?:[^@\/\n]+@)?(?:www\.)?([^:\/\n]+)`)
+	reg := regexp.MustCompile(`^(?:https?:\/\/)`)
 	if !reg.MatchString(longLink) {
 		longLink = "http://" + longLink
 	}
