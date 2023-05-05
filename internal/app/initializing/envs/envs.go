@@ -1,6 +1,8 @@
 package envs
 
-import "github.com/caarlos0/env/v6"
+import (
+	"github.com/caarlos0/env/v6"
+)
 
 type EnvVars struct {
 	AddressServer       string `env:"SERVER_ADDRESS"`
@@ -9,11 +11,13 @@ type EnvVars struct {
 	PathFileStorage     string `env:"FILE_STORAGE_PATH"`
 }
 
-func ReadEnv() (string, string, string, string) {
+func ReadEnv() (string, string, string, string, error) {
+
 	envs := EnvVars{}
+
 	if err := env.Parse(&envs); err != nil {
-		panic(err)
+		return "", "", "", "", err
 	}
 
-	return envs.AddressServer, envs.AddressServerForURL, envs.LvlLogs, envs.PathFileStorage
+	return envs.AddressServer, envs.AddressServerForURL, envs.LvlLogs, envs.PathFileStorage, nil
 }

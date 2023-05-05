@@ -9,8 +9,8 @@ import (
 
 type (
 	responseData struct {
-		status int
-		size   int
+		status     int
+		returnData []byte
 	}
 
 	loggingResoinseWriter struct {
@@ -19,21 +19,22 @@ type (
 	}
 )
 
-func (r *loggingResoinseWriter) WriteHeader(status int) {
-	r.ResponseWriter.WriteHeader(status)
+func (r *loggingResoinseWriter) Write(b []byte) (int, error) {
+	r.responseData.returnData = append(r.responseData.returnData, b...)
+	size, err := r.ResponseWriter.Write(b)
+	return size, err
 }
 
-func (r *loggingResoinseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-	return size, err
+func (r *loggingResoinseWriter) WriteHeader(statusCode int) {
+	r.responseData.status = statusCode
+	r.ResponseWriter.WriteHeader(statusCode)
 }
 
 func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		respData := &responseData{0, 0}
+		respData := &responseData{0, []byte{}}
 		lw := loggingResoinseWriter{responseData: respData, ResponseWriter: w}
 
 		h.ServeHTTP(&lw, r)
@@ -43,7 +44,7 @@ func WithLogging(h http.Handler) http.Handler {
 		logger.Log.Info("logging middleware ", zap.Float32("duration", float32(duration)),
 			zap.String("method", r.Method),
 			zap.Int("status", lw.responseData.status),
-			zap.Int("size", lw.responseData.size),
+			zap.ByteString("body", lw.responseData.returnData),
 		)
 	}
 	return http.HandlerFunc(logFn)

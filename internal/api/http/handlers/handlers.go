@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/GZ91/linkreduct/internal/app/logger"
+	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 type handlerserService interface {
@@ -26,10 +30,14 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if string(link) == "" {
+
+	_, err = url.ParseRequestURI(string(link))
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
 		return
 	}
+
 	bodyText := h.nodeService.GetSmallLink(string(link))
 	if bodyText == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -37,7 +45,10 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(bodyText))
+	_, err = w.Write([]byte(bodyText))
+	if err != nil {
+		logger.Log.Error("response recording error", zap.String("error", err.Error()))
+	}
 }
 
 func (h *handlers) GetShortURL(w http.ResponseWriter, r *http.Request) {
@@ -56,27 +67,32 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	type requestData struct {
-		URL string `json:"url"`
-	}
-	var data requestData
-	json.Unmarshal(textBody, &data)
-	link := data.URL
 
-	if link == "" {
+	var data models.RequestData
+
+	err = json.Unmarshal(textBody, &data)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
 		return
 	}
+
+	link := data.URL
+
+	_, err = url.ParseRequestURI(link)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	bodyText := h.nodeService.GetSmallLink(link)
 	if bodyText == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	type result struct {
-		Result string `json:"result"`
-	}
 
-	Result := result{Result: bodyText}
+	Result := models.ResultReturn{Result: bodyText}
 
 	res, err := json.Marshal(Result)
 	if err != nil {
@@ -90,5 +106,8 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(res)
+	_, err = w.Write(res)
+	if err != nil {
+		logger.Log.Error("response recording error", zap.String("error", err.Error()))
+	}
 }

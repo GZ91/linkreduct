@@ -5,6 +5,7 @@ import (
 	"github.com/GZ91/linkreduct/internal/app/initializing/envs"
 	"github.com/GZ91/linkreduct/internal/app/initializing/flags"
 	"github.com/GZ91/linkreduct/internal/app/logger"
+	"go.uber.org/zap"
 	"strings"
 )
 
@@ -16,7 +17,10 @@ func Configuration() *config.Config {
 
 func ReadParams() (string, string, string, string) {
 
-	addressServer, addressServerForURL, logLvl, pathFileStorage := envs.ReadEnv()
+	addressServer, addressServerForURL, logLvl, pathFileStorage, err := envs.ReadEnv()
+	if err != nil {
+		logger.Log.Error("error when reading environment variables", zap.String("error", err.Error()))
+	}
 
 	if addressServer == "" || addressServerForURL == "" || logLvl == "" {
 		addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag := flags.ReadFlags()

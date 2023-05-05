@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"os"
@@ -54,8 +55,9 @@ func (r *db) GetURL(key string) (string, bool) {
 
 func (r *db) AddURL(url string) string {
 	shortURL := r.getShortURL()
+
 	model := models.StructURL{
-		ID:          strconv.Itoa(len(r.data) + 1),
+		ID:          uuid.New().String(),
 		ShortURL:    shortURL,
 		OriginalURL: url,
 	}
