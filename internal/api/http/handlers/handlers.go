@@ -30,6 +30,10 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if string(link) == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	//_, err = url.ParseRequestURI(string(link))
 	//if err != nil {
 	//	w.WriteHeader(http.StatusBadRequest)
@@ -78,6 +82,10 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 
 	link := data.URL
 
+	if string(link) == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	//_, err = url.ParseRequestURI(link)
 	//if err != nil {
 	//	w.WriteHeader(http.StatusBadRequest)
