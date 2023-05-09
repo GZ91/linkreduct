@@ -18,10 +18,11 @@ type handlerserService interface {
 
 type handlers struct {
 	nodeService handlerserService
+	URLFilter   *regexp.Regexp
 }
 
 func New(nodeService handlerserService) *handlers {
-	return &handlers{nodeService: nodeService}
+	return &handlers{nodeService: nodeService, URLFilter: regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)}
 }
 
 func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
@@ -31,8 +32,7 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg := regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)
-	if !reg.MatchString(string(link)) {
+	if !h.URLFilter.MatchString(string(link)) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -78,8 +78,7 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 
 	link := data.URL
 
-	reg := regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)
-	if !reg.MatchString(link) {
+	if !h.URLFilter.MatchString(link) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

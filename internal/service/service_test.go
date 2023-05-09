@@ -94,10 +94,8 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &NodeService{
-				db:   tt.fields.db,
-				conf: tt.fields.conf,
-			}
+			r := New(tt.fields.db, tt.fields.conf)
+
 			tt.fields.db.EXPECT().AddURL(tt.args.longLink).Return(tt.wantDB)
 			tt.fields.conf.EXPECT().GetAddressServerURL().Return(tt.wantConf)
 			want := tt.wantConf + tt.wantDB

@@ -11,13 +11,13 @@ type EnvVars struct {
 	PathFileStorage     string `env:"FILE_STORAGE_PATH"`
 }
 
-func ReadEnv() (string, string, string, string, error) {
+func ReadEnv() (*EnvVars, error) {
 
 	envs := EnvVars{}
 
 	if err := env.Parse(&envs); err != nil {
-		return "", "", "", "", err
+		return nil, err
 	}
 
-	return envs.AddressServer, envs.AddressServerForURL, envs.LvlLogs, envs.PathFileStorage, nil
+	return &envs, nil
 }

@@ -17,24 +17,32 @@ func Configuration() *config.Config {
 
 func ReadParams() (string, string, string, string) {
 
-	addressServer, addressServerForURL, logLvl, pathFileStorage, err := envs.ReadEnv()
+	envVars, err := envs.ReadEnv()
 	if err != nil {
 		logger.Log.Error("error when reading environment variables", zap.String("error", err.Error()))
 	}
 
-	if addressServer == "" || addressServerForURL == "" || logLvl == "" {
-		addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag := flags.ReadFlags()
-		if addressServer == "" {
-			addressServer = addressServerFlag
-		}
-		if addressServerForURL == "" {
-			addressServerForURL = addressServerForURLFlag
-		}
-		if logLvl == "" {
-			logLvl = logLvlFlag
-		}
-		if pathFileStorage == "" {
-			pathFileStorage = pathFileStorageFlag
+	var addressServer, addressServerForURL, logLvl, pathFileStorage string
+
+	if envVars == nil {
+		addressServer, addressServerForURL, logLvl, pathFileStorage = flags.ReadFlags()
+	} else {
+		addressServer, addressServerForURL, logLvl, pathFileStorage = envVars.AddressServer, envVars.AddressServerForURL, envVars.LvlLogs, envVars.PathFileStorage
+
+		if addressServer == "" || addressServerForURL == "" || logLvl == "" || pathFileStorage == "" {
+			addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag := flags.ReadFlags()
+			if addressServer == "" {
+				addressServer = addressServerFlag
+			}
+			if addressServerForURL == "" {
+				addressServerForURL = addressServerForURLFlag
+			}
+			if logLvl == "" {
+				logLvl = logLvlFlag
+			}
+			if pathFileStorage == "" {
+				pathFileStorage = pathFileStorageFlag
+			}
 		}
 	}
 

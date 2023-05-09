@@ -20,12 +20,13 @@ type ConfigerService interface {
 }
 
 func New(db Storeger, conf ConfigerService) *NodeService {
-	return &NodeService{db: db, conf: conf}
+	return &NodeService{db: db, conf: conf, URLFilter: regexp.MustCompile(`^(?:https?:\/\/)`)}
 }
 
 type NodeService struct {
-	db   Storeger
-	conf ConfigerService
+	db        Storeger
+	conf      ConfigerService
+	URLFilter *regexp.Regexp
 }
 
 func (r *NodeService) GetURL(id string) (string, bool) {
@@ -37,8 +38,7 @@ func (r *NodeService) addURL(link string) string {
 }
 
 func (r *NodeService) GetSmallLink(longLink string) string {
-	reg := regexp.MustCompile(`^(?:https?:\/\/)`)
-	if !reg.MatchString(longLink) {
+	if !r.URLFilter.MatchString(longLink) {
 		longLink = "http://" + longLink
 	}
 	id := r.addURL(longLink)
