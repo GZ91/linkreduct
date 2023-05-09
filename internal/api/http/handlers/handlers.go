@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/GZ91/linkreduct/internal/storage/postgresql"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"io"
@@ -19,6 +20,7 @@ type handlerserService interface {
 type handlers struct {
 	nodeService handlerserService
 	URLFilter   *regexp.Regexp
+	PstgrSQL    *postgresql.DB //Временное решение для выполнения задачи с Ping
 }
 
 func New(nodeService handlerserService) *handlers {
@@ -107,4 +109,13 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))
 	}
+}
+
+func (h *handlers) PingDataBase(w http.ResponseWriter, r *http.Request) {
+	err := h.PstgrSQL.Ping()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

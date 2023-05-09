@@ -29,12 +29,14 @@ func Start(conf *config.Config) (er error) {
 	NodeStorage := infile.New(GeneratorRunes, conf)
 	NodeService := service.New(NodeStorage, conf)
 	handls := handlers.New(NodeService)
+	handls.PstgrSQL = conf.GetConfDB() //Временное решение для выполнения задачи с Ping
 
 	router := chi.NewRouter()
 	router.Use(sizemiddleware.CalculateSize)
 	router.Use(loggermiddleware.WithLogging)
 	router.Use(compressmiddleware.Compress)
 
+	router.Get("/ping", handls.PingDataBase)
 	router.Get("/{id}", handls.GetShortURL)
 	router.Post("/", handls.AddLongLink)
 	router.Post("/api/shorten", handls.AddLongLinkJSON)

@@ -10,27 +10,30 @@ import (
 )
 
 func Configuration() *config.Config {
-	addressServer, addressServerForURL, logLvl, pathFileStorage := ReadParams()
+	addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB := ReadParams()
 	logger.Initializing(logLvl)
-	return config.New(false, addressServer, addressServerForURL, 10, 5, pathFileStorage)
+	conf := config.New(false, addressServer, addressServerForURL, 10, 5, pathFileStorage)
+	conf.ConfigureDBPostgresql(initializingDB(connectionStringDB))
+	return conf
 }
 
-func ReadParams() (string, string, string, string) {
+func ReadParams() (string, string, string, string, string) {
 
 	envVars, err := envs.ReadEnv()
 	if err != nil {
 		logger.Log.Error("error when reading environment variables", zap.String("error", err.Error()))
 	}
 
-	var addressServer, addressServerForURL, logLvl, pathFileStorage string
+	var addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB string
 
 	if envVars == nil {
-		addressServer, addressServerForURL, logLvl, pathFileStorage = flags.ReadFlags()
+		addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB = flags.ReadFlags()
 	} else {
-		addressServer, addressServerForURL, logLvl, pathFileStorage = envVars.AddressServer, envVars.AddressServerForURL, envVars.LvlLogs, envVars.PathFileStorage
+		addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB =
+			envVars.AddressServer, envVars.AddressServerForURL, envVars.LvlLogs, envVars.PathFileStorage, envVars.ConnectionStringDB
 
-		if addressServer == "" || addressServerForURL == "" || logLvl == "" || pathFileStorage == "" {
-			addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag := flags.ReadFlags()
+		if addressServer == "" || addressServerForURL == "" || logLvl == "" || pathFileStorage == "" || connectionStringDB == "" {
+			addressServerFlag, addressServerForURLFlag, logLvlFlag, pathFileStorageFlag, connectionStringDBFlag := flags.ReadFlags()
 			if addressServer == "" {
 				addressServer = addressServerFlag
 			}
@@ -43,11 +46,14 @@ func ReadParams() (string, string, string, string) {
 			if pathFileStorage == "" {
 				pathFileStorage = pathFileStorageFlag
 			}
+			if connectionStringDB == "" {
+				connectionStringDB = connectionStringDBFlag
+			}
 		}
 	}
 
 	addressServerForURL = CheckChangeBaseURL(addressServer, addressServerForURL)
-	return addressServer, addressServerForURL, logLvl, pathFileStorage
+	return addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB
 }
 
 func CheckChangeBaseURL(addressServer, addressServerURL string) string {
@@ -66,4 +72,12 @@ func CheckChangeBaseURL(addressServer, addressServerURL string) string {
 		port = port + "/"
 	}
 	return strAddress[0] + ":" + strAddress[1] + ":" + port
+}
+
+func initializingDB(connectionStringDB string) (string, string, string, string) {
+	user := connectionStringDB[:strings.Index(connectionStringDB, ":")]
+	password := connectionStringDB[strings.Index(connectionStringDB, ":")+1 : strings.Index(connectionStringDB, "@")]
+	address := connectionStringDB[strings.Index(connectionStringDB, "(")+1 : strings.Index(connectionStringDB, ")")]
+	dbName := connectionStringDB[strings.LastIndex(connectionStringDB, "/")+1:]
+	return address, user, password, dbName
 }
