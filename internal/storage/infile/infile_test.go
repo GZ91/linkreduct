@@ -166,7 +166,7 @@ func Test_db_save(t *testing.T) {
 func Test_db_AddURL(t *testing.T) {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "")
 	genrun := genrunes.New()
-	db := New(genrun, conf)
+	db := New(conf, genrun)
 
 	tests := []struct {
 		name string

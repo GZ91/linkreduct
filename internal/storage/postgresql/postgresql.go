@@ -4,23 +4,33 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/GZ91/linkreduct/internal/storage/postgresql/postgresqlconfig"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type DB struct {
-	address  string
-	user     string
-	password string
-	dbname   string
+type ConfigerStorage interface {
+	GetMaxIterLen() int
+	GetConfDB() *postgresqlconfig.ConfigDB
+	GetStartLenShortLink() int
 }
 
-func New(address, user, password, dbname string) *DB {
-	return &DB{address: address, user: user, password: password, dbname: dbname}
+type GeneratorRunes interface {
+	RandStringRunes(int) string
+}
+
+type DB struct {
+	conf           ConfigerStorage
+	generatorRunes GeneratorRunes
+}
+
+func New(config ConfigerStorage, generatorRunes GeneratorRunes) *DB {
+	return &DB{conf: config, generatorRunes: generatorRunes}
 }
 
 func (d DB) Ping() error {
+	ConfDB := d.conf.GetConfDB()
 	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-		d.address, d.user, d.password, d.dbname)
+		ConfDB.Address, ConfDB.User, ConfDB.Password, ConfDB.Dbname)
 	ctx := context.Background()
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
@@ -31,5 +41,18 @@ func (d DB) Ping() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (d DB) AddURL(URL string) string {
+	return ""
+}
+
+func (d DB) GetURL(shortURL string) (string, bool) {
+
+	return "", false
+}
+
+func (d DB) Close() error {
 	return nil
 }

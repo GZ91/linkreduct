@@ -11,12 +11,19 @@ import (
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/infile"
+	"github.com/GZ91/linkreduct/internal/storage/inmemory"
+	"github.com/GZ91/linkreduct/internal/storage/postgresql"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"net/http"
 	"sync"
 )
+
+type NodeStorager interface {
+	service.Storeger
+	Close() error
+}
 
 func Start(conf *config.Config) (er error) {
 	defer func() {
@@ -25,11 +32,19 @@ func Start(conf *config.Config) (er error) {
 		}
 	}()
 
+	var NodeStorage NodeStorager
 	GeneratorRunes := genrunes.New()
-	NodeStorage := infile.New(GeneratorRunes, conf)
+	if !conf.GetConfDB().Empty() {
+		NodeStorage = postgresql.New(conf, GeneratorRunes)
+	} else if conf.GetNameFileStorage() != "" {
+		NodeStorage = infile.New(conf, GeneratorRunes)
+	} else {
+		NodeStorage = inmemory.New(conf, GeneratorRunes)
+	}
+
 	NodeService := service.New(NodeStorage, conf)
 	handls := handlers.New(NodeService)
-	handls.PstgrSQL = conf.GetConfDB() //Временное решение для выполнения задачи с Ping
+	//handls.PstgrSQL = conf.GetConfDB() //Временное решение для выполнения задачи с Ping
 
 	router := chi.NewRouter()
 	router.Use(sizemiddleware.CalculateSize)

@@ -111,6 +111,47 @@ func (_c *Storeger_GetURL_Call) RunAndReturn(run func(string) (string, bool)) *S
 	return _c
 }
 
+// Ping provides a mock function with given fields:
+func (_m *Storeger) Ping() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Storeger_Ping_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Ping'
+type Storeger_Ping_Call struct {
+	*mock.Call
+}
+
+// Ping is a helper method to define mock.On call
+func (_e *Storeger_Expecter) Ping() *Storeger_Ping_Call {
+	return &Storeger_Ping_Call{Call: _e.mock.On("Ping")}
+}
+
+func (_c *Storeger_Ping_Call) Run(run func()) *Storeger_Ping_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Storeger_Ping_Call) Return(_a0 error) *Storeger_Ping_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Storeger_Ping_Call) RunAndReturn(run func() error) *Storeger_Ping_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 type mockConstructorTestingTNewStoreger interface {
 	mock.TestingT
 	Cleanup(func())

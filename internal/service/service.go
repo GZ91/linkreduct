@@ -10,6 +10,7 @@ import (
 type Storeger interface {
 	AddURL(string) string
 	GetURL(string) (string, bool)
+	Ping() error
 }
 
 // Storeger
@@ -43,4 +44,8 @@ func (r *NodeService) GetSmallLink(longLink string) string {
 	}
 	id := r.addURL(longLink)
 	return r.conf.GetAddressServerURL() + id
+}
+
+func (r *NodeService) Ping() error {
+	return r.db.Ping()
 }

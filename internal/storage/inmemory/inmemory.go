@@ -54,3 +54,11 @@ func (r *db) AddURL(url string) string {
 		return idString
 	}
 }
+
+func (r *db) Close() error {
+	return nil
+}
+
+func (r *db) Ping() error {
+	return nil
+}

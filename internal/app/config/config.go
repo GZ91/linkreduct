@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/GZ91/linkreduct/internal/storage/postgresql"
+	"github.com/GZ91/linkreduct/internal/storage/postgresql/postgresqlconfig"
 	"sync"
 )
 
@@ -12,7 +12,7 @@ type Config struct {
 	maxIterLen        int
 	startLenShortLink int
 	fileStorage       string
-	configDB          *postgresql.DB
+	configDB          *postgresqlconfig.ConfigDB
 	mutex             sync.Mutex
 }
 
@@ -28,10 +28,10 @@ func New(debug bool, addressServer, addressServerURL string, maxIterRuneGen int,
 }
 
 func (r *Config) ConfigureDBPostgresql(address, user, password, dbname string) {
-	r.configDB = postgresql.New(address, user, password, dbname)
+	r.configDB = postgresqlconfig.New(address, user, password, dbname)
 }
 
-func (r *Config) GetConfDB() *postgresql.DB {
+func (r *Config) GetConfDB() *postgresqlconfig.ConfigDB {
 	return r.configDB
 }
 

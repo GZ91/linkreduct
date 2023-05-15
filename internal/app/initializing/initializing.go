@@ -75,9 +75,13 @@ func CheckChangeBaseURL(addressServer, addressServerURL string) string {
 }
 
 func initializingDB(connectionStringDB string) (string, string, string, string) {
-	user := connectionStringDB[:strings.Index(connectionStringDB, ":")]
-	password := connectionStringDB[strings.Index(connectionStringDB, ":")+1 : strings.Index(connectionStringDB, "@")]
-	address := connectionStringDB[strings.Index(connectionStringDB, "(")+1 : strings.Index(connectionStringDB, ")")]
-	dbName := connectionStringDB[strings.LastIndex(connectionStringDB, "/")+1:]
+	var user, password, address, dbName string
+	if connectionStringDB == "" {
+		return "", "", "", ""
+	}
+	user = connectionStringDB[:strings.Index(connectionStringDB, ":")]
+	password = connectionStringDB[strings.Index(connectionStringDB, ":")+1 : strings.Index(connectionStringDB, "@")]
+	address = connectionStringDB[strings.Index(connectionStringDB, "(")+1 : strings.Index(connectionStringDB, ")")]
+	dbName = connectionStringDB[strings.LastIndex(connectionStringDB, "/")+1:]
 	return address, user, password, dbName
 }

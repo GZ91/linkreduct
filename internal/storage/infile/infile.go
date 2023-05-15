@@ -24,7 +24,7 @@ type ConfigerStorage interface {
 	GetStartLenShortLink() int
 }
 
-func New(gen GeneratorRunes, conf ConfigerStorage) *db {
+func New(conf ConfigerStorage, gen GeneratorRunes) *db {
 	DB := &db{
 		generatorRunes: gen,
 		conf:           conf,
@@ -173,4 +173,8 @@ func (r *db) getShortURL() string {
 		}
 		return idString
 	}
+}
+
+func (r *db) Ping() error {
+	return nil
 }
