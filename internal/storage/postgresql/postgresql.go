@@ -91,9 +91,9 @@ func (d DB) AddURL(URL string) string {
 	for {
 		shorturl = d.generatorRunes.RandStringRunes(lenShort)
 		row := con.QueryRowContext(ctx, "SELECT COUNT(id) FROM short_origin_reference WHERE shorturl = $1", shorturl)
-		var count_shorturl int
-		row.Scan(&count_shorturl)
-		if count_shorturl == 0 {
+		var countShorturl int
+		row.Scan(&countShorturl)
+		if countShorturl == 0 {
 			break
 		}
 		index++
