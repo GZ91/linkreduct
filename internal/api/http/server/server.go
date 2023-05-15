@@ -29,13 +29,18 @@ func Start(conf *config.Config) (er error) {
 	defer func() {
 		if r := recover(); r != nil {
 			er = errors.Wrap(er, r.(error).Error())
+			logger.Log.Error("Panic", zap.Error(er))
 		}
 	}()
 
 	var NodeStorage NodeStorager
 	GeneratorRunes := genrunes.New()
 	if !conf.GetConfDB().Empty() {
-		NodeStorage = postgresql.New(conf, GeneratorRunes)
+		var err error
+		NodeStorage, err = postgresql.New(conf, GeneratorRunes)
+		if err != nil {
+			panic(err)
+		}
 	} else if conf.GetNameFileStorage() != "" {
 		NodeStorage = infile.New(conf, GeneratorRunes)
 	} else {
@@ -44,7 +49,6 @@ func Start(conf *config.Config) (er error) {
 
 	NodeService := service.New(NodeStorage, conf)
 	handls := handlers.New(NodeService)
-	//handls.PstgrSQL = conf.GetConfDB() //Временное решение для выполнения задачи с Ping
 
 	router := chi.NewRouter()
 	router.Use(sizemiddleware.CalculateSize)
