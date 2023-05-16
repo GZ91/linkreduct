@@ -148,7 +148,7 @@ func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationId: data.CorrelationId, ShortURL: shortURL})
+		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 
 	res, err := json.Marshal(releasedBatchURL)
