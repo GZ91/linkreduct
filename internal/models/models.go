@@ -13,3 +13,13 @@ type RequestData struct {
 type ResultReturn struct {
 	Result string `json:"result"`
 }
+
+type IncomingBatchURL struct {
+	CorrelationId string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type ReleasedBatchURL struct {
+	CorrelationId string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}

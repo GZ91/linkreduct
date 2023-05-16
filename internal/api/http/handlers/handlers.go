@@ -118,3 +118,53 @@ func (h *handlers) PingDataBase(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
+	textBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var incomingBatchURL []models.IncomingBatchURL
+	var releasedBatchURL []models.ReleasedBatchURL
+
+	err = json.Unmarshal(textBody, &incomingBatchURL)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	for _, data := range incomingBatchURL {
+		link := data.OriginalURL
+
+		if !h.URLFilter.MatchString(link) {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		shortURL := h.nodeService.GetSmallLink(link)
+		if shortURL == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationId: data.CorrelationId, ShortURL: shortURL})
+	}
+
+	res, err := json.Marshal(releasedBatchURL)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	if len(res) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(res)
+	if err != nil {
+		logger.Log.Error("response recording error", zap.String("error", err.Error()))
+	}
+}

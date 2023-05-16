@@ -58,6 +58,7 @@ func Start(conf *config.Config) (er error) {
 	router.Get("/ping", handls.PingDataBase)
 	router.Get("/{id}", handls.GetShortURL)
 	router.Post("/", handls.AddLongLink)
+	router.Post("/api/shorten/batch", handls.AddListLongLinkJSON)
 	router.Post("/api/shorten", handls.AddLongLinkJSON)
 
 	Server := http.Server{}
