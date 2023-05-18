@@ -62,3 +62,14 @@ func (r *db) Close() error {
 func (r *db) Ping() error {
 	return nil
 }
+
+func (r *db) FindLongURL(OriginalURL string) (string, bool) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	for key, val := range r.data {
+		if val == OriginalURL {
+			return key, true
+		}
+	}
+	return "", false
+}

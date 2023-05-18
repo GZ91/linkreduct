@@ -58,7 +58,7 @@ func createTable(db *DB) error {
 	return err
 }
 
-func (d DB) Ping() error {
+func (d *DB) Ping() error {
 	ctx := context.Background()
 	db, err := sql.Open("pgx", d.ps)
 	if err != nil {
@@ -72,7 +72,7 @@ func (d DB) Ping() error {
 	return nil
 }
 
-func (d DB) AddURL(URL string) string {
+func (d *DB) AddURL(URL string) string {
 	ctx := context.Background()
 	db, err := sql.Open("pgx", d.ps)
 	if err != nil {
@@ -110,7 +110,7 @@ func (d DB) AddURL(URL string) string {
 	return shorturl
 }
 
-func (d DB) GetURL(shortURL string) (string, bool) {
+func (d *DB) GetURL(shortURL string) (string, bool) {
 	ctx := context.Background()
 	db, err := sql.Open("pgx", d.ps)
 	if err != nil {
@@ -133,6 +133,29 @@ func (d DB) GetURL(shortURL string) (string, bool) {
 	return "", false
 }
 
-func (d DB) Close() error {
+func (d *DB) Close() error {
 	return nil
+}
+
+func (d *DB) FindLongURL(OriginalURL string) (string, bool) {
+	ctx := context.Background()
+	db, err := sql.Open("pgx", d.ps)
+	if err != nil {
+		logger.Log.Error("failed to open the database", zap.Error(err))
+		return "", false
+	}
+	defer db.Close()
+	con, err := db.Conn(ctx)
+	if err != nil {
+		logger.Log.Error("failed to connect to the database", zap.Error(err))
+		return "", false
+	}
+	row := con.QueryRowContext(ctx, `SELECT ShortURL
+	FROM short_origin_reference WHERE OriginalURL = $1 limit 1`, OriginalURL)
+	var shortURL string
+	row.Scan(&shortURL)
+	if shortURL != "" {
+		return shortURL, true
+	}
+	return "", false
 }

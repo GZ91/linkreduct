@@ -178,3 +178,14 @@ func (r *db) getShortURL() string {
 func (r *db) Ping() error {
 	return nil
 }
+
+func (r *db) FindLongURL(OriginalURL string) (string, bool) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	for key, val := range r.data {
+		if val.OriginalURL == OriginalURL {
+			return key, true
+		}
+	}
+	return "", false
+}

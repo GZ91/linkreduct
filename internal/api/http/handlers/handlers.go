@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/GZ91/linkreduct/internal/app/logger"
+	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/go-chi/chi/v5"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -12,7 +14,7 @@ import (
 )
 
 type handlerserService interface {
-	GetSmallLink(string) string
+	GetSmallLink(string) (string, error)
 	GetURL(string) (string, bool)
 	Ping() error
 }
@@ -27,6 +29,8 @@ func New(nodeService handlerserService) *handlers {
 }
 
 func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
+	StatusReturn := http.StatusCreated
+
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -37,14 +41,22 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	bodyText, err := h.nodeService.GetSmallLink(string(link))
+	if err != nil {
+		if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
+			StatusReturn = http.StatusConflict
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
 
-	bodyText := h.nodeService.GetSmallLink(string(link))
 	if bodyText == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	w.Header().Add("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(StatusReturn)
 	_, err = w.Write([]byte(bodyText))
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))
@@ -62,6 +74,8 @@ func (h *handlers) GetShortURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
+	StatusReturn := http.StatusCreated
+
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -84,7 +98,15 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyText := h.nodeService.GetSmallLink(link)
+	bodyText, err := h.nodeService.GetSmallLink(link)
+	if err != nil {
+		if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
+			StatusReturn = http.StatusConflict
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
 	if bodyText == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -103,7 +125,7 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(StatusReturn)
 	_, err = w.Write(res)
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))
@@ -120,6 +142,7 @@ func (h *handlers) PingDataBase(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
+	StatusReturn := http.StatusCreated
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -143,7 +166,15 @@ func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		shortURL := h.nodeService.GetSmallLink(link)
+		shortURL, err := h.nodeService.GetSmallLink(link)
+		if err != nil {
+			if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
+				StatusReturn = http.StatusConflict
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 		if shortURL == "" {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -162,7 +193,7 @@ func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(StatusReturn)
 	_, err = w.Write(res)
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"regexp"
 )
 
@@ -11,6 +12,7 @@ type Storeger interface {
 	AddURL(string) string
 	GetURL(string) (string, bool)
 	Ping() error
+	FindLongURL(string) (string, bool)
 }
 
 // Storeger
@@ -38,12 +40,15 @@ func (r *NodeService) addURL(link string) string {
 	return r.db.AddURL(link)
 }
 
-func (r *NodeService) GetSmallLink(longLink string) string {
+func (r *NodeService) GetSmallLink(longLink string) (string, error) {
 	if !r.URLFilter.MatchString(longLink) {
 		longLink = "http://" + longLink
 	}
+	if id, ok := r.db.FindLongURL(longLink); ok {
+		return r.conf.GetAddressServerURL() + id, errorsapp.ErrLinkAlreadyExists
+	}
 	id := r.addURL(longLink)
-	return r.conf.GetAddressServerURL() + id
+	return r.conf.GetAddressServerURL() + id, nil
 }
 
 func (r *NodeService) Ping() error {

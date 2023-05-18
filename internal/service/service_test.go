@@ -96,10 +96,11 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.fields.db, tt.fields.conf)
 
-			tt.fields.db.EXPECT().AddURL(tt.args.longLink).Return(tt.wantDB)
+			tt.fields.db.EXPECT().AddURL(tt.args.longLink).Return(tt.wantDB).Maybe()
+			tt.fields.db.EXPECT().FindLongURL(tt.args.longLink).Return("", false).Maybe()
 			tt.fields.conf.EXPECT().GetAddressServerURL().Return(tt.wantConf)
 			want := tt.wantConf + tt.wantDB
-			if got := r.GetSmallLink(tt.args.longLink); got != want {
+			if got, _ := r.GetSmallLink(tt.args.longLink); got != want {
 				t.Errorf("GetSmallLink() = %v, want %v", got, want)
 			}
 		})
