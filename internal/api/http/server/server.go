@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	errors2 "errors"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
@@ -29,20 +28,13 @@ type NodeStorager interface {
 }
 
 func Start(ctx context.Context, conf *config.Config) (er error) {
-	defer func() {
-		if r := recover(); r != nil {
-			er = errors2.Join(er, r.(error))
-			logger.Log.Error("Panic", zap.Error(er))
-		}
-	}()
-
 	var NodeStorage NodeStorager
 	GeneratorRunes := genrunes.New()
 	if !conf.GetConfDB().Empty() {
 		var err error
 		NodeStorage, err = postgresql.New(ctx, conf, GeneratorRunes)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	} else if conf.GetNameFileStorage() != "" {
 		NodeStorage = infile.New(ctx, conf, GeneratorRunes)
@@ -85,9 +77,5 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	}
 	wg.Wait()
 	return
-
-}
-
-func GracefulShotdownServer() {
 
 }

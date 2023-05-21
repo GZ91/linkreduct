@@ -181,7 +181,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 		logger.Log.Error("when initializing a long link search pattern", zap.Error(err))
 		return nil, err
 	}
-	execInsertLongUrlInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);")
+	execInsertLongURLInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);")
 	if err != nil {
 		logger.Log.Error("when initializing the add string pattern", zap.Error(err))
 		return nil, err
@@ -228,7 +228,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 			}
 		}
 
-		_, err = execInsertLongUrlInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL)
+		_, err = execInsertLongURLInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL)
 		if err != nil {
 			logger.Log.Error("When creating a string with a long link in the database", zap.Error(err))
 			tx.Rollback()
