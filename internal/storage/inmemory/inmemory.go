@@ -2,7 +2,7 @@ package inmemory
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -94,13 +94,13 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 			return nil, err
 		}
 		if ok {
-			errs = errors.Join(errs, errorsapp.ErrLinkAlreadyExists)
+			errs = fmt.Errorf("%w; %w", errs, errorsapp.ErrLinkAlreadyExists)
 		} else {
 			var err error
 			shortURL, err = r.AddURL(ctx, link)
 			if err != nil {
 				logger.Log.Error("error when writing an add link to the inmemory storage", zap.Error(err), zap.String("unadded value", link))
-				errs = errors.Join(errs, err)
+				errs = fmt.Errorf("%w; %w", errs, err)
 			}
 		}
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})

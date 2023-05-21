@@ -205,7 +205,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 				CorrelationID: incomingLink.CorrelationID,
 				ShortURL:      shorturl,
 			})
-			errs = errors.Join(errs, errorsapp.ErrLinkAlreadyExists)
+			errs = fmt.Errorf("%w; %w", errs, errorsapp.ErrLinkAlreadyExists)
 			continue
 		}
 		for {
