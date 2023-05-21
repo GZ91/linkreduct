@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -102,14 +101,14 @@ func (r *db) save() (errs error) {
 		data, err := json.Marshal(val)
 		if err != nil {
 			logger.Log.Error("when serializing data to json", zap.String("error", err.Error()))
-			errs = fmt.Errorf("%w; %w", errs, err)
+			errs = err
 			continue
 		}
 		data = append(data, '\n')
 		len, err := file.Write(data)
 		if err != nil {
 			logger.Log.Error("when writing a json string to a file", zap.String("error", err.Error()))
-			errs = fmt.Errorf("%w; %w", errs, err)
+			errs = err
 			continue
 		}
 		ovLen += len
@@ -141,7 +140,7 @@ func (r *db) open() (errs error) {
 		err := json.Unmarshal(data, &modelData)
 		if err != nil {
 			logger.Log.Error("error when trying to decode a string", zap.String("error", err.Error()))
-			errs = fmt.Errorf("%w; %w", errs, err)
+			errs = err
 			continue
 		}
 		r.data[modelData.ShortURL] = modelData
@@ -198,13 +197,13 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 			return nil, err
 		}
 		if ok {
-			errs = fmt.Errorf("%w; %w", errs, errorsapp.ErrLinkAlreadyExists)
+			errs = errorsapp.ErrLinkAlreadyExists
 		} else {
 			var err error
 			shortURL, err = r.AddURL(ctx, link)
 			if err != nil {
 				logger.Log.Error("error when writing an add link to the file storage", zap.Error(err), zap.String("unadded value", link))
-				errs = fmt.Errorf("%w; %w", errs, err)
+				return nil, err
 			}
 		}
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
