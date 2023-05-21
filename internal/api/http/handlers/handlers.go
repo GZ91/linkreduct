@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
@@ -14,9 +15,10 @@ import (
 )
 
 type handlerserService interface {
-	GetSmallLink(string) (string, error)
-	GetURL(string) (string, bool)
-	Ping() error
+	GetSmallLink(context.Context, string) (string, error)
+	GetURL(context.Context, string) (string, bool, error)
+	Ping(ctx context.Context) error
+	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 }
 
 type handlers struct {
@@ -34,6 +36,7 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 	link, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -41,12 +44,13 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	bodyText, err := h.nodeService.GetSmallLink(string(link))
+	bodyText, err := h.nodeService.GetSmallLink(r.Context(), string(link))
 	if err != nil {
 		if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
 			StatusReturn = http.StatusConflict
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
 			return
 		}
 	}
@@ -63,9 +67,14 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handlers) GetShortURL(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if link, ok := h.nodeService.GetURL(id); ok {
+	link, ok, err := h.nodeService.GetURL(r.Context(), id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if ok {
 		w.Header().Add("Location", link)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
@@ -98,7 +107,7 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bodyText, err := h.nodeService.GetSmallLink(link)
+	bodyText, err := h.nodeService.GetSmallLink(r.Context(), link)
 	if err != nil {
 		if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
 			StatusReturn = http.StatusConflict
@@ -133,7 +142,7 @@ func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) PingDataBase(w http.ResponseWriter, r *http.Request) {
-	err := h.nodeService.Ping()
+	err := h.nodeService.Ping(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -141,7 +150,7 @@ func (h *handlers) PingDataBase(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
+func (h *handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -150,7 +159,6 @@ func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var incomingBatchURL []models.IncomingBatchURL
-	var releasedBatchURL []models.ReleasedBatchURL
 
 	err = json.Unmarshal(textBody, &incomingBatchURL)
 	if err != nil {
@@ -158,28 +166,16 @@ func (h *handlers) AddListLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	for _, data := range incomingBatchURL {
-		link := data.OriginalURL
 
-		if !h.URLFilter.MatchString(link) {
+	releasedBatchURL, err := h.nodeService.AddBatchLink(r.Context(), incomingBatchURL)
+	if err != nil {
+		if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
+			StatusReturn = http.StatusConflict
+		} else {
 			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
 			return
 		}
-
-		shortURL, err := h.nodeService.GetSmallLink(link)
-		if err != nil {
-			if errors.Is(err, errorsapp.ErrLinkAlreadyExists) {
-				StatusReturn = http.StatusConflict
-			} else {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-		}
-		if shortURL == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 
 	res, err := json.Marshal(releasedBatchURL)

@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	errors2 "errors"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
@@ -16,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"net"
 	"net/http"
 	"sync"
 )
@@ -25,10 +28,10 @@ type NodeStorager interface {
 	Close() error
 }
 
-func Start(conf *config.Config) (er error) {
+func Start(ctx context.Context, conf *config.Config) (er error) {
 	defer func() {
 		if r := recover(); r != nil {
-			er = errors.Wrap(er, r.(error).Error())
+			er = errors2.Join(er, r.(error))
 			logger.Log.Error("Panic", zap.Error(er))
 		}
 	}()
@@ -37,14 +40,14 @@ func Start(conf *config.Config) (er error) {
 	GeneratorRunes := genrunes.New()
 	if !conf.GetConfDB().Empty() {
 		var err error
-		NodeStorage, err = postgresql.New(conf, GeneratorRunes)
+		NodeStorage, err = postgresql.New(ctx, conf, GeneratorRunes)
 		if err != nil {
 			panic(err)
 		}
 	} else if conf.GetNameFileStorage() != "" {
-		NodeStorage = infile.New(conf, GeneratorRunes)
+		NodeStorage = infile.New(ctx, conf, GeneratorRunes)
 	} else {
-		NodeStorage = inmemory.New(conf, GeneratorRunes)
+		NodeStorage = inmemory.New(ctx, conf, GeneratorRunes)
 	}
 
 	NodeService := service.New(NodeStorage, conf)
@@ -56,14 +59,17 @@ func Start(conf *config.Config) (er error) {
 	router.Use(compressmiddleware.Compress)
 
 	router.Get("/ping", handls.PingDataBase)
-	router.Get("/{id}", handls.GetShortURL)
+	router.Get("/{id}", handls.GetLongURL)
 	router.Post("/", handls.AddLongLink)
-	router.Post("/api/shorten/batch", handls.AddListLongLinkJSON)
+	router.Post("/api/shorten/batch", handls.AddBatchLinks)
 	router.Post("/api/shorten", handls.AddLongLinkJSON)
 
 	Server := http.Server{}
 	Server.Addr = conf.GetAddressServer()
 	Server.Handler = router
+	Server.BaseContext = func(listener net.Listener) context.Context {
+		return ctx
+	}
 
 	wg := sync.WaitGroup{}
 
@@ -79,5 +85,9 @@ func Start(conf *config.Config) (er error) {
 	}
 	wg.Wait()
 	return
+
+}
+
+func GracefulShotdownServer() {
 
 }

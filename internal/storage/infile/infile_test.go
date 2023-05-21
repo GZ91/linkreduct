@@ -1,6 +1,7 @@
 package infile
 
 import (
+	"context"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -65,7 +66,8 @@ func Test_db_GetURL(t *testing.T) {
 				data:           tt.fields.data,
 				newdata:        tt.fields.newdata,
 			}
-			got, got1 := r.GetURL(tt.args.key)
+			got, got1, err := r.GetURL(context.Background(), tt.args.key)
+			assert.NoError(t, err)
 			if got != tt.want {
 				t.Errorf("GetURL() got = %v, want %v", got, tt.want)
 			}
@@ -166,7 +168,7 @@ func Test_db_save(t *testing.T) {
 func Test_db_AddURL(t *testing.T) {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "")
 	genrun := genrunes.New()
-	db := New(conf, genrun)
+	db := New(context.Background(), conf, genrun)
 
 	tests := []struct {
 		name string
@@ -189,11 +191,13 @@ func Test_db_AddURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			link := tt.link
-			id := db.AddURL(link)
+			id, err := db.AddURL(context.Background(), link)
+			assert.NoError(t, err)
 			if id == "" {
 				t.Fatalf("no id when saving the link")
 			}
-			URL, found := db.GetURL(id)
+			URL, found, err := db.GetURL(context.Background(), id)
+			assert.NoError(t, err)
 			if !found {
 				t.Fatalf("the saved link was not found")
 			}

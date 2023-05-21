@@ -2,12 +2,13 @@ package infile
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"github.com/GZ91/linkreduct/internal/app/logger"
+	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"os"
 	"strconv"
@@ -24,7 +25,7 @@ type ConfigerStorage interface {
 	GetStartLenShortLink() int
 }
 
-func New(conf ConfigerStorage, gen GeneratorRunes) *db {
+func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
 	DB := &db{
 		generatorRunes: gen,
 		conf:           conf,
@@ -42,7 +43,7 @@ type db struct {
 	newdata        []string
 }
 
-func (r *db) GetURL(key string) (string, bool) {
+func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	datainModel, ok := r.data[key]
@@ -50,11 +51,14 @@ func (r *db) GetURL(key string) (string, bool) {
 	if ok {
 		retval = datainModel.OriginalURL
 	}
-	return retval, ok
+	return retval, ok, nil
 }
 
-func (r *db) AddURL(url string) string {
-	shortURL := r.getShortURL()
+func (r *db) AddURL(ctx context.Context, url string) (string, error) {
+	shortURL, err := r.getShortURL(ctx)
+	if err != nil {
+		return "", err
+	}
 
 	model := models.StructURL{
 		ID:          uuid.New().String(),
@@ -65,19 +69,10 @@ func (r *db) AddURL(url string) string {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.data[shortURL] = model
-	return shortURL
+	return shortURL, nil
 }
 
 func (r *db) save() (errs error) {
-	defer func() {
-		if rec := recover(); rec != nil {
-			if errs == nil {
-				errs = errors.New(fmt.Sprint(rec))
-			} else {
-				errors.Wrap(errs, fmt.Sprint(rec))
-			}
-		}
-	}()
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	nameFile := r.conf.GetNameFileStorage()
@@ -107,14 +102,14 @@ func (r *db) save() (errs error) {
 		data, err := json.Marshal(val)
 		if err != nil {
 			logger.Log.Error("when serializing data to json", zap.String("error", err.Error()))
-			errors.Wrap(errs, err.Error())
+			errs = errors.Join(errs, err)
 			continue
 		}
 		data = append(data, '\n')
 		len, err := file.Write(data)
 		if err != nil {
 			logger.Log.Error("when writing a json string to a file", zap.String("error", err.Error()))
-			errors.Wrap(errs, err.Error())
+			errs = errors.Join(errs, err)
 			continue
 		}
 		ovLen += len
@@ -146,7 +141,7 @@ func (r *db) open() (errs error) {
 		err := json.Unmarshal(data, &modelData)
 		if err != nil {
 			logger.Log.Error("error when trying to decode a string", zap.String("error", err.Error()))
-			errors.Wrap(errs, err.Error())
+			errs = errors.Join(errs, err)
 			continue
 		}
 		r.data[modelData.ShortURL] = modelData
@@ -158,34 +153,61 @@ func (r *db) Close() error {
 	return r.save()
 }
 
-func (r *db) getShortURL() string {
+func (r *db) getShortURL(ctx context.Context) (string, error) {
 	lenID := r.conf.GetStartLenShortLink()
 	iterLen := 0
 	MaxIterLen := r.conf.GetMaxIterLen()
+
 	for {
 		if iterLen == MaxIterLen {
 			lenID++
 		}
 		idString := r.generatorRunes.RandStringRunes(lenID)
-		if _, found := r.GetURL(idString); found {
+		if _, found, err := r.GetURL(ctx, idString); found {
+			if err != nil {
+				return "", err
+			}
 			iterLen++
 			continue
 		}
-		return idString
+		return idString, nil
 	}
 }
 
-func (r *db) Ping() error {
+func (r *db) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *db) FindLongURL(OriginalURL string) (string, bool) {
+func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
 		if val.OriginalURL == OriginalURL {
-			return key, true
+			return key, true, nil
 		}
 	}
-	return "", false
+	return "", false, nil
+}
+
+func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+	for _, data := range batchLink {
+		link := data.OriginalURL
+		var shortURL string
+		shortURL, ok, err := r.FindLongURL(ctx, link)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			errs = errors.Join(errs, errorsapp.ErrLinkAlreadyExists)
+		} else {
+			var err error
+			shortURL, err = r.AddURL(ctx, link)
+			if err != nil {
+				logger.Log.Error("error when writing an add link to the file storage", zap.Error(err), zap.String("unadded value", link))
+				errs = errors.Join(errs, err)
+			}
+		}
+		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
+	}
+	return
 }

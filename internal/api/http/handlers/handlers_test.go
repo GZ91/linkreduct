@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/GZ91/linkreduct/internal/app/config"
@@ -24,7 +25,7 @@ func Test_handlers_AddLongLink(t *testing.T) {
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		r.Get("/{id}", handls.GetShortURL)
+		r.Get("/{id}", handls.GetLongURL)
 		r.Post("/", handls.AddLongLink)
 	})
 
@@ -83,7 +84,7 @@ func TestGet400(t *testing.T) {
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
 
-		handls.GetShortURL(rec, req)
+		handls.GetLongURL(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
@@ -112,7 +113,7 @@ func Test_handlers_AddLongLinkJSON(t *testing.T) {
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		r.Get("/{id}", handls.GetShortURL)
+		r.Get("/{id}", handls.GetLongURL)
 		r.Post("/api/shorten", handls.AddLongLinkJSON)
 	})
 
@@ -162,7 +163,7 @@ func SetupForTesting() {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "C:\\Users\\Georgiy\\Desktop\\GO\\linkreduct\\info.txt")
 
 	genrun := genrunes.New()
-	NodeStorage := inmemory.New(conf, genrun)
+	NodeStorage := inmemory.New(context.Background(), conf, genrun)
 	NodeService := service.New(NodeStorage, conf)
 	handls = New(NodeService)
 }
