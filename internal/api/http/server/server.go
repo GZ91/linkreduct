@@ -17,7 +17,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"net"
 	"net/http"
 	"sync"
 )
@@ -59,9 +58,6 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	Server := http.Server{}
 	Server.Addr = conf.GetAddressServer()
 	Server.Handler = router
-	Server.BaseContext = func(listener net.Listener) context.Context {
-		return ctx
-	}
 
 	wg := sync.WaitGroup{}
 

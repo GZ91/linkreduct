@@ -168,6 +168,8 @@ func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 
 func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	tx, err := d.db.Begin()
+	defer tx.Rollback()
+
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +198,6 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 		if err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				logger.Log.Error("when searching for a scan of the result of finding a repeat of a long link", zap.Error(err))
-				tx.Rollback()
 				return nil, err
 			}
 		}
@@ -215,7 +216,6 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 			err := row.Scan(&countShorturl)
 			if err != nil {
 				logger.Log.Error("when searching for a scan of the result of finding a repeat of a short link", zap.Error(err))
-				tx.Rollback()
 				return nil, err
 			}
 			if countShorturl == 0 {
@@ -239,6 +239,9 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 			ShortURL:      shorturl,
 		})
 	}
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 	return
 }
