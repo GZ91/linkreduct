@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"github.com/GZ91/linkreduct/internal/service/mocks"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -51,9 +53,10 @@ func TestNodeService_GetURL(t *testing.T) {
 				db:   tt.fields.db,
 				conf: tt.fields.conf,
 			}
-			tt.fields.db.EXPECT().GetURL(tt.args.id).Return(tt.want, tt.want1)
+			tt.fields.db.EXPECT().GetURL(context.Background(), tt.args.id).Return(tt.want, tt.want1, nil)
 
-			got, got1 := r.GetURL(tt.args.id)
+			got, got1, err := r.GetURL(context.Background(), tt.args.id)
+			assert.NoError(t, err)
 			if got != tt.want {
 				t.Errorf("GetURL() got = %v, want %v", got, tt.want)
 			}
@@ -96,10 +99,11 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New(tt.fields.db, tt.fields.conf)
 
-			tt.fields.db.EXPECT().AddURL(tt.args.longLink).Return(tt.wantDB)
+			tt.fields.db.EXPECT().AddURL(context.Background(), tt.args.longLink).Return(tt.wantDB, nil).Maybe()
+			tt.fields.db.EXPECT().FindLongURL(context.Background(), tt.args.longLink).Return("", false, nil).Maybe()
 			tt.fields.conf.EXPECT().GetAddressServerURL().Return(tt.wantConf)
 			want := tt.wantConf + tt.wantDB
-			if got := r.GetSmallLink(tt.args.longLink); got != want {
+			if got, _ := r.GetSmallLink(context.Background(), tt.args.longLink); got != want {
 				t.Errorf("GetSmallLink() = %v, want %v", got, want)
 			}
 		})

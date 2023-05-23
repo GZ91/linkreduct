@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"github.com/GZ91/linkreduct/internal/api/http/server"
 	"github.com/GZ91/linkreduct/internal/app/config"
@@ -22,8 +23,8 @@ func New(config *config.Config) *App {
 	return appLink
 }
 
-func (r App) Run() {
-	if err := server.Start(r.config); err != nil {
+func (r App) Run(ctx context.Context) {
+	if err := server.Start(ctx, r.config); err != nil {
 		fmt.Printf("%v \n", err)
 	}
 }

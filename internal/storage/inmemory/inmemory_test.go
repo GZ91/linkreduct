@@ -1,6 +1,7 @@
 package inmemory
 
 import (
+	"context"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/stretchr/testify/assert"
@@ -10,7 +11,7 @@ import (
 func TestStorageURL(t *testing.T) {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "C:\\Users\\Georgiy\\Desktop\\GO\\linkreduct\\info.txt")
 	genrun := genrunes.New()
-	db := New(conf, genrun)
+	db := New(context.Background(), conf, genrun)
 
 	tests := []struct {
 		name string
@@ -33,11 +34,13 @@ func TestStorageURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			link := tt.link
-			id := db.AddURL(link)
+			id, err := db.AddURL(context.Background(), link)
+			assert.NoError(t, err)
 			if id == "" {
 				t.Fatalf("no id when saving the link")
 			}
-			URL, found := db.GetURL(id)
+			URL, found, err := db.GetURL(context.Background(), id)
+			assert.NoError(t, err)
 			if !found {
 				t.Fatalf("the saved link was not found")
 			}

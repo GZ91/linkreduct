@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
@@ -11,6 +12,8 @@ import (
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/infile"
+	"github.com/GZ91/linkreduct/internal/storage/inmemory"
+	"github.com/GZ91/linkreduct/internal/storage/postgresql"
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -18,15 +21,26 @@ import (
 	"sync"
 )
 
-func Start(conf *config.Config) (er error) {
-	defer func() {
-		if r := recover(); r != nil {
-			er = errors.Wrap(er, r.(error).Error())
-		}
-	}()
+type NodeStorager interface {
+	service.Storeger
+	Close() error
+}
 
+func Start(ctx context.Context, conf *config.Config) (er error) {
+	var NodeStorage NodeStorager
 	GeneratorRunes := genrunes.New()
-	NodeStorage := infile.New(GeneratorRunes, conf)
+	if !conf.GetConfDB().Empty() {
+		var err error
+		NodeStorage, err = postgresql.New(ctx, conf, GeneratorRunes)
+		if err != nil {
+			return err
+		}
+	} else if conf.GetNameFileStorage() != "" {
+		NodeStorage = infile.New(ctx, conf, GeneratorRunes)
+	} else {
+		NodeStorage = inmemory.New(ctx, conf, GeneratorRunes)
+	}
+
 	NodeService := service.New(NodeStorage, conf)
 	handls := handlers.New(NodeService)
 
@@ -35,8 +49,10 @@ func Start(conf *config.Config) (er error) {
 	router.Use(loggermiddleware.WithLogging)
 	router.Use(compressmiddleware.Compress)
 
-	router.Get("/{id}", handls.GetShortURL)
+	router.Get("/ping", handls.PingDataBase)
+	router.Get("/{id}", handls.GetLongURL)
 	router.Post("/", handls.AddLongLink)
+	router.Post("/api/shorten/batch", handls.AddBatchLinks)
 	router.Post("/api/shorten", handls.AddLongLinkJSON)
 
 	Server := http.Server{}
