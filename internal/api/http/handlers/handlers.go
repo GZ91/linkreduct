@@ -84,7 +84,6 @@ func (h *handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
-
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

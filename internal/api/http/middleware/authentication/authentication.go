@@ -46,7 +46,7 @@ func Authentication(h http.Handler) http.Handler {
 			}
 		}
 
-		r.WithContext(context.WithValue(r.Context(), "userID", userID))
+		r = r.WithContext(context.WithValue(r.Context(), "userID", userID))
 		h.ServeHTTP(w, r)
 	})
 }
