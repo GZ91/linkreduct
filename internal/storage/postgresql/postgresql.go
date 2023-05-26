@@ -68,6 +68,7 @@ func (d *DB) createTable(ctx context.Context) error {
 	id serial PRIMARY KEY,
 	uuid VARCHAR(45)  NOT NULL,
 	ShortURL VARCHAR(250) NOT NULL,
+    userID VARCHAR(45)  NOT NULL,
 	OriginalURL TEXT
 );`)
 	return err
@@ -84,6 +85,12 @@ func (d *DB) Ping(ctx context.Context) error {
 }
 
 func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
+	var UserID string
+	UserIDVal := ctx.Value("userID")
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+
 	con, err := d.db.Conn(ctx)
 	if err != nil {
 		logger.Log.Error("failed to connect to the database", zap.Error(err))
@@ -113,7 +120,8 @@ func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
 		}
 	}
 
-	_, err = con.ExecContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);", uuid.New().String(), shorturl, URL)
+	_, err = con.ExecContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl, userID) VALUES ($1, $2, $3, $4);",
+		uuid.New().String(), shorturl, URL, UserID)
 	if err != nil {
 		logger.Log.Error("error when adding a record to the database", zap.Error(err))
 	}
@@ -167,6 +175,12 @@ func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 }
 
 func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+	var UserID string
+	UserIDVal := ctx.Value("userID")
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+
 	tx, err := d.db.Begin()
 	defer tx.Rollback()
 
@@ -183,7 +197,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 		logger.Log.Error("when initializing a long link search pattern", zap.Error(err))
 		return nil, err
 	}
-	execInsertLongURLInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);")
+	execInsertLongURLInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl, userID) VALUES ($1, $2, $3, $4);")
 	if err != nil {
 		logger.Log.Error("when initializing the add string pattern", zap.Error(err))
 		return nil, err
@@ -228,7 +242,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 			}
 		}
 
-		_, err = execInsertLongURLInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL)
+		_, err = execInsertLongURLInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL, UserID)
 		if err != nil {
 			logger.Log.Error("When creating a string with a long link in the database", zap.Error(err))
 			tx.Rollback()

@@ -32,11 +32,15 @@ type db struct {
 func (r *db) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	UserID := ctx.Value("userID")
+	var UserID string
+	UserIDVal := ctx.Value("userID")
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
 	StructURL := models.StructURL{
 		OriginalURL: value,
 		ShortURL:    key,
-		UserID:      UserID.(string),
+		UserID:      UserID,
 		ID:          uuid.New().String(),
 	}
 	r.data[key] = StructURL

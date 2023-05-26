@@ -58,11 +58,16 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	var UserID string
+	UserIDVal := ctx.Value("userID")
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
 	model := models.StructURL{
 		ID:          uuid.New().String(),
 		ShortURL:    shortURL,
 		OriginalURL: url,
+		UserID:      UserID,
 	}
 	r.newdata = append(r.newdata, shortURL)
 	r.mutex.Lock()
