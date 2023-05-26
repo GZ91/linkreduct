@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
+	authenticationmiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/authentication"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/size"
@@ -45,6 +46,7 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()
+	router.Use(authenticationmiddleware.Authentication)
 	router.Use(sizemiddleware.CalculateSize)
 	router.Use(loggermiddleware.WithLogging)
 	router.Use(compressmiddleware.Compress)
