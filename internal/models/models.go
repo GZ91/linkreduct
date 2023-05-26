@@ -4,6 +4,7 @@ type StructURL struct {
 	ID          string `json:"uuid" db:"uuid"`
 	ShortURL    string `json:"short_url" db:"ShortURL"`
 	OriginalURL string `json:"original_url" db:"OriginalURL"`
+	UserID      string `json:"user_id"`
 }
 
 type RequestData struct {
