@@ -198,7 +198,8 @@ func (h *handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
 	var UserID string
-	UserIDVal := r.Context().Value("userID")
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := r.Context().Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}

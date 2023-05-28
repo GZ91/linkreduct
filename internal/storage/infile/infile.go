@@ -59,7 +59,8 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 		return "", err
 	}
 	var UserID string
-	UserIDVal := ctx.Value("userID")
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}

@@ -86,7 +86,8 @@ func (d *DB) Ping(ctx context.Context) error {
 
 func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
 	var UserID string
-	UserIDVal := ctx.Value("userID")
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}
@@ -176,7 +177,8 @@ func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 
 func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	var UserID string
-	UserIDVal := ctx.Value("userID")
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}

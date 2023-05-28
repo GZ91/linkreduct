@@ -33,7 +33,8 @@ func (r *db) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	var UserID string
-	UserIDVal := ctx.Value("userID")
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}

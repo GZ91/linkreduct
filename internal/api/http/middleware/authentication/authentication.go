@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
+	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -11,6 +12,8 @@ import (
 )
 
 const SecretKey = "Secret_Key"
+
+type ctxString string
 
 func Authentication(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,8 +53,8 @@ func Authentication(h http.Handler) http.Handler {
 				}
 			}
 		}
-
-		r = r.WithContext(context.WithValue(r.Context(), "userID", userID))
+		var userIDCTX models.CtxString = "userID"
+		r = r.WithContext(context.WithValue(r.Context(), userIDCTX, userID))
 		h.ServeHTTP(w, r)
 	})
 }
