@@ -215,3 +215,13 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 	}
 	return
 }
+
+func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	returnData := make([]models.ReturnedStructURL, 0)
+	for _, val := range r.data {
+		if val.UserID == userID {
+			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
+		}
+	}
+	return returnData, nil
+}

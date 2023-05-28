@@ -201,7 +201,8 @@ func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
 	UserIDVal := r.Context().Value("userID")
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
-	} else {
+	}
+	if UserID == "" {
 		logger.Log.Info("trying to execute a method to retrieve a URL by a user by an unauthorized user")
 		w.WriteHeader(http.StatusUnauthorized)
 		return

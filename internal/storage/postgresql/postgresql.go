@@ -259,3 +259,29 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 	}
 	return
 }
+
+func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	con, err := d.db.Conn(ctx)
+	if err != nil {
+		logger.Log.Error("failed to connect to the database", zap.Error(err))
+		return nil, err
+	}
+	defer con.Close()
+
+	row, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
+	FROM short_origin_reference WHERE userID = $1`, userID)
+	if err != nil && err != sql.ErrNoRows {
+		logger.Log.Error("when reading data from the database", zap.Error(err))
+		return nil, err
+	}
+
+	returnData := make([]models.ReturnedStructURL, 0)
+
+	for row.Next() {
+		var shortURL, originalURL string
+		row.Scan(&shortURL, &originalURL)
+		returnData = append(returnData, models.ReturnedStructURL{OriginalURL: originalURL, ShortURL: shortURL})
+
+	}
+	return returnData, nil
+}

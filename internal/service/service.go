@@ -16,6 +16,7 @@ type Storeger interface {
 	Ping(context.Context) error
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 	FindLongURL(context.Context, string) (string, bool, error)
+	GetLinksUser(context.Context, string) ([]models.ReturnedStructURL, error)
 }
 
 // Storeger
@@ -88,4 +89,8 @@ func (r *NodeService) getFormatLongLink(longLink string) (string, error) {
 
 func (r *NodeService) Ping(ctx context.Context) error {
 	return r.db.Ping(ctx)
+}
+
+func (r *NodeService) GetURLsUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	return r.db.GetLinksUser(ctx, userID)
 }
