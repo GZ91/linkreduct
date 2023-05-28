@@ -84,7 +84,7 @@ func validGetAuthentication(tokenString string) (string, bool, error) {
 				logger.Log.Error(strErr)
 				return nil, fmt.Errorf(strErr)
 			}
-			return []byte(SECRET_KEY), nil
+			return []byte(SecretKey), nil
 		})
 	if err != nil {
 		return "", false, err

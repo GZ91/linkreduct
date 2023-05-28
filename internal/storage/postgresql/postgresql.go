@@ -270,8 +270,8 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 
 	rows, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
 	FROM short_origin_reference WHERE userID = $1`, userID)
-	if err != nil {
-		if err != sql.ErrNoRows {
+	if err != nil || rows.Err() != nil {
+		if err != sql.ErrNoRows || rows.Err() != sql.ErrNoRows {
 			logger.Log.Error("when reading data from the database", zap.Error(err))
 			return nil, err
 		}
