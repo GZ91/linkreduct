@@ -58,11 +58,17 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
 	model := models.StructURL{
 		ID:          uuid.New().String(),
 		ShortURL:    shortURL,
 		OriginalURL: url,
+		UserID:      UserID,
 	}
 	r.newdata = append(r.newdata, shortURL)
 	r.mutex.Lock()
@@ -209,4 +215,14 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 	return
+}
+
+func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	returnData := make([]models.ReturnedStructURL, 0)
+	for _, val := range r.data {
+		if val.UserID == userID {
+			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
+		}
+	}
+	return returnData, nil
 }

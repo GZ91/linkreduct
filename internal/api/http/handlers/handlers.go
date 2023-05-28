@@ -17,6 +17,7 @@ import (
 type handlerserService interface {
 	GetSmallLink(context.Context, string) (string, error)
 	GetURL(context.Context, string) (string, bool, error)
+	GetURLsUser(context.Context, string) ([]models.ReturnedStructURL, error)
 	Ping(ctx context.Context) error
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 }
@@ -84,7 +85,6 @@ func (h *handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
-
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -194,4 +194,42 @@ func (h *handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))
 	}
+}
+
+func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := r.Context().Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	if UserID == "" {
+		logger.Log.Info("trying to execute a method to retrieve a URL by a user by an unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	returnedURLs, err := h.nodeService.GetURLsUser(r.Context(), UserID)
+	if err != nil {
+		logger.Log.Error("when getting URLs on the user side", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(returnedURLs) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	jsonText, err := json.Marshal(returnedURLs)
+	if err != nil {
+		logger.Log.Error("when creating a json file in the URL return procedure by user", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(jsonText)
+	if err != nil {
+		logger.Log.Error("response recording error", zap.Error(err))
+	}
+
 }

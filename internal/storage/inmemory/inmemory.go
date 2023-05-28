@@ -5,6 +5,7 @@ import (
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -18,27 +19,43 @@ type GeneratorRunes interface {
 }
 
 func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]string, 1), config: conf, genrun: genrun}
+	return &db{data: make(map[string]models.StructURL, 1), config: conf, genrun: genrun}
 }
 
 type db struct {
-	data   map[string]string
+	data   map[string]models.StructURL
 	config ConfigerStorage
 	genrun GeneratorRunes
 	mutex  sync.Mutex
 }
 
-func (r *db) setDB(key, value string) bool {
+func (r *db) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.data[key] = value
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	StructURL := models.StructURL{
+		OriginalURL: value,
+		ShortURL:    key,
+		UserID:      UserID,
+		ID:          uuid.New().String(),
+	}
+	r.data[key] = StructURL
 	return true
 }
 
 func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	val, ok = r.data[key]
+	valueStruct, found := r.data[key]
+	if found {
+		ok = found
+		val = valueStruct.OriginalURL
+	}
 	return
 }
 
@@ -60,7 +77,7 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 			iterLen++
 			continue
 		}
-		r.setDB(idString, url)
+		r.setDB(ctx, idString, url)
 		return idString, nil
 	}
 }
@@ -77,7 +94,7 @@ func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
-		if val == OriginalURL {
+		if val.OriginalURL == OriginalURL {
 			return key, true, nil
 		}
 	}
@@ -106,4 +123,14 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 	return
+}
+
+func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	returnData := make([]models.ReturnedStructURL, 0)
+	for _, val := range r.data {
+		if val.UserID == userID {
+			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
+		}
+	}
+	return returnData, nil
 }
