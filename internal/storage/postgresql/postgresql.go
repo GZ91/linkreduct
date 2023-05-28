@@ -268,18 +268,23 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	}
 	defer con.Close()
 
-	row, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
+	rows, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
 	FROM short_origin_reference WHERE userID = $1`, userID)
-	if err != nil && err != sql.ErrNoRows {
-		logger.Log.Error("when reading data from the database", zap.Error(err))
-		return nil, err
+	if err != nil {
+		if err != sql.ErrNoRows {
+			logger.Log.Error("when reading data from the database", zap.Error(err))
+			return nil, err
+		}
+	}
+	if err == sql.ErrNoRows {
+		return nil, nil
 	}
 
 	returnData := make([]models.ReturnedStructURL, 0)
 
-	for row.Next() {
+	for rows.Next() {
 		var shortURL, originalURL string
-		row.Scan(&shortURL, &originalURL)
+		rows.Scan(&shortURL, &originalURL)
 		returnData = append(returnData, models.ReturnedStructURL{OriginalURL: originalURL, ShortURL: shortURL})
 
 	}

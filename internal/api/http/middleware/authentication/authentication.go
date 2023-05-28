@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-const SECRET_KEY = "Secret_Key"
+const SecretKey = "Secret_Key"
 
 func Authentication(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +43,11 @@ func Authentication(h http.Handler) http.Handler {
 			}
 			if !ok {
 				cookie.Value, userID, err = getAuthorizationForCookie()
+				if err != nil {
+					logger.Log.Error("authorization", zap.Error(err))
+					h.ServeHTTP(w, r)
+					return
+				}
 			}
 		}
 
@@ -62,7 +67,7 @@ func getAuthorizationForCookie() (string, string, error) {
 		UserID: UserID,
 	})
 
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(SecretKey))
 	if err != nil {
 		return "", "", err
 	}
