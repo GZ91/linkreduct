@@ -5,6 +5,7 @@ type StructURL struct {
 	ShortURL    string `json:"short_url" db:"ShortURL"`
 	OriginalURL string `json:"original_url" db:"OriginalURL"`
 	UserID      string `json:"user_id"`
+	DeletedFlag bool
 }
 
 type RequestData struct {

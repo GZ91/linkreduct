@@ -46,6 +46,9 @@ func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	datainModel, ok := r.data[key]
+	if datainModel.DeletedFlag {
+		return "", false, errorsapp.ErrLineURLDeleted
+	}
 	var retval string
 	if ok {
 		retval = datainModel.OriginalURL
