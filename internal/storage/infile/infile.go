@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type GeneratorRunes interface {
@@ -28,7 +29,7 @@ func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
 	DB := &db{
 		generatorRunes: gen,
 		conf:           conf,
-		data:           make(map[string]models.StructURL),
+		data:           make(map[string]*models.StructURL),
 	}
 	DB.open()
 	return DB
@@ -38,9 +39,10 @@ type db struct {
 	generatorRunes GeneratorRunes
 	conf           ConfigerStorage
 	mutex          sync.Mutex
-	data           map[string]models.StructURL
+	data           map[string]*models.StructURL
 	newdata        []string
-	chsURLs        chan []models.StructDelURLs
+	chsURLsForDel  chan []models.StructDelURLs
+	chURLsForDel   chan models.StructDelURLs
 }
 
 func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
@@ -68,7 +70,7 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}
-	model := models.StructURL{
+	model := &models.StructURL{
 		ID:          uuid.New().String(),
 		ShortURL:    shortURL,
 		OriginalURL: url,
@@ -146,8 +148,8 @@ func (r *db) open() (errs error) {
 	scaner := bufio.NewScanner(file)
 	for scaner.Scan() {
 		data := scaner.Bytes()
-		modelData := models.StructURL{}
-		err := json.Unmarshal(data, &modelData)
+		modelData := &models.StructURL{}
+		err := json.Unmarshal(data, modelData)
 		if err != nil {
 			logger.Log.Error("error when trying to decode a string", zap.String("error", err.Error()))
 			errs = err
@@ -232,6 +234,46 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 }
 
 func (r *db) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
-	r.chsURLs = chsURLs
+	r.chsURLsForDel = chsURLs
+	go r.GroupingDataForDeleted()
+	go r.FillBufferDelete()
 	return nil
+}
+
+func (r *db) GroupingDataForDeleted() {
+	for sliceVal := range r.chsURLsForDel {
+		sliceVal := sliceVal
+		go func() {
+			for _, val := range sliceVal {
+				r.chURLsForDel <- val
+			}
+		}()
+	}
+}
+
+func (r *db) FillBufferDelete() {
+	t := time.Tick(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-r.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t:
+			if len(listForDel) > 0 {
+				r.deletedURLs(listForDel)
+			}
+		}
+
+	}
+}
+
+func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+	for _, val := range listForDel {
+		for index, _ := range r.data {
+			if r.data[index].ShortURL == val.URL {
+				r.data[index].DeletedFlag = true
+				break
+			}
+		}
+	}
 }

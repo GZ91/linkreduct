@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 type ConfigerStorage interface {
@@ -19,15 +20,16 @@ type GeneratorRunes interface {
 }
 
 func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]models.StructURL, 1), config: conf, genrun: genrun}
+	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun}
 }
 
 type db struct {
-	data    map[string]models.StructURL
-	config  ConfigerStorage
-	genrun  GeneratorRunes
-	mutex   sync.Mutex
-	chsURLs chan []models.StructDelURLs
+	data          map[string]*models.StructURL
+	config        ConfigerStorage
+	genrun        GeneratorRunes
+	mutex         sync.Mutex
+	chsURLsForDel chan []models.StructDelURLs
+	chURLsForDel  chan models.StructDelURLs
 }
 
 func (r *db) setDB(ctx context.Context, key, value string) bool {
@@ -39,7 +41,7 @@ func (r *db) setDB(ctx context.Context, key, value string) bool {
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}
-	StructURL := models.StructURL{
+	StructURL := &models.StructURL{
 		OriginalURL: value,
 		ShortURL:    key,
 		UserID:      UserID,
@@ -140,6 +142,46 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 }
 
 func (r *db) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
-	r.chsURLs = chsURLs
+	r.chsURLsForDel = chsURLs
+	go r.GroupingDataForDeleted()
+	go r.FillBufferDelete()
 	return nil
+}
+
+func (r *db) GroupingDataForDeleted() {
+	for sliceVal := range r.chsURLsForDel {
+		sliceVal := sliceVal
+		go func() {
+			for _, val := range sliceVal {
+				r.chURLsForDel <- val
+			}
+		}()
+	}
+}
+
+func (r *db) FillBufferDelete() {
+	t := time.Tick(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-r.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t:
+			if len(listForDel) > 0 {
+				r.deletedURLs(listForDel)
+			}
+		}
+
+	}
+}
+
+func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+	for _, val := range listForDel {
+		for index, _ := range r.data {
+			if r.data[index].ShortURL == val.URL {
+				r.data[index].DeletedFlag = true
+				break
+			}
+		}
+	}
 }
