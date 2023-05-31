@@ -270,7 +270,7 @@ func (r *db) FillBufferDelete() {
 func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
 	for _, val := range listForDel {
 		for index, _ := range r.data {
-			if r.data[index].ShortURL == val.URL {
+			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {
 				r.data[index].DeletedFlag = true
 				break
 			}
