@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
+	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
+	"go.uber.org/zap"
 	"regexp"
 )
 
@@ -17,6 +20,7 @@ type Storeger interface {
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 	FindLongURL(context.Context, string) (string, bool, error)
 	GetLinksUser(context.Context, string) ([]models.ReturnedStructURL, error)
+	InitializingRemovalChannel(chan chan models.StructDelURLs) error
 }
 
 // Storeger
@@ -27,15 +31,28 @@ type ConfigerService interface {
 }
 
 func New(db Storeger, conf ConfigerService) *NodeService {
-	return &NodeService{db: db, conf: conf, URLFormat: regexp.MustCompile(`^(?:https?:\/\/)`),
-		URLFilter: regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)}
+	Node := &NodeService{
+		db:           db,
+		conf:         conf,
+		URLFormat:    regexp.MustCompile(`^(?:https?:\/\/)`),
+		URLFilter:    regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`),
+		chsURLForDel: make(chan chan models.StructDelURLs, 10),
+	}
+
+	err := Node.db.InitializingRemovalChannel(Node.chsURLForDel)
+	if err != nil {
+		logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
+		return nil
+	}
+	return Node
 }
 
 type NodeService struct {
-	db        Storeger
-	conf      ConfigerService
-	URLFormat *regexp.Regexp
-	URLFilter *regexp.Regexp
+	db           Storeger
+	conf         ConfigerService
+	URLFormat    *regexp.Regexp
+	URLFilter    *regexp.Regexp
+	chsURLForDel chan chan models.StructDelURLs
 }
 
 func (r *NodeService) GetURL(ctx context.Context, id string) (string, bool, error) {
@@ -93,4 +110,24 @@ func (r *NodeService) Ping(ctx context.Context) error {
 
 func (r *NodeService) GetURLsUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	return r.db.GetLinksUser(ctx, userID)
+}
+
+func (r *NodeService) DeletedLinks(ctx context.Context, listURLs []string) error {
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	if UserID == "" {
+		return errors.New("userID is not filled in")
+	}
+	chURLs := make(chan models.StructDelURLs, len(listURLs))
+	for _, val := range listURLs {
+		data := models.StructDelURLs{URL: val, UserID: UserID}
+		chURLs <- data
+	}
+	close(chURLs)
+	r.chsURLForDel <- chURLs
+	return nil
 }

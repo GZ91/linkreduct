@@ -40,6 +40,7 @@ type db struct {
 	mutex          sync.Mutex
 	data           map[string]models.StructURL
 	newdata        []string
+	chsURLs        chan chan models.StructDelURLs
 }
 
 func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
@@ -228,4 +229,9 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 		}
 	}
 	return returnData, nil
+}
+
+func (r *db) InitializingRemovalChannel(chsURLs chan chan models.StructDelURLs) error {
+	r.chsURLs = chsURLs
+	return nil
 }

@@ -23,10 +23,11 @@ func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
 }
 
 type db struct {
-	data   map[string]models.StructURL
-	config ConfigerStorage
-	genrun GeneratorRunes
-	mutex  sync.Mutex
+	data    map[string]models.StructURL
+	config  ConfigerStorage
+	genrun  GeneratorRunes
+	mutex   sync.Mutex
+	chsURLs chan chan models.StructDelURLs
 }
 
 func (r *db) setDB(ctx context.Context, key, value string) bool {
@@ -136,4 +137,9 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 		}
 	}
 	return returnData, nil
+}
+
+func (r *db) InitializingRemovalChannel(chsURLs chan chan models.StructDelURLs) error {
+	r.chsURLs = chsURLs
+	return nil
 }

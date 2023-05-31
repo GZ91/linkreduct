@@ -29,6 +29,7 @@ type DB struct {
 	generatorRunes GeneratorRunes
 	ps             string
 	db             *sql.DB
+	chsURLs        chan chan models.StructDelURLs
 }
 
 func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRunes) (*DB, error) {
@@ -296,4 +297,9 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 
 	}
 	return returnData, nil
+}
+
+func (d *DB) InitializingRemovalChannel(chsURLs chan chan models.StructDelURLs) error {
+	d.chsURLs = chsURLs
+	return nil
 }
