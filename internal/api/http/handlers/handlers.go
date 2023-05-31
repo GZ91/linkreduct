@@ -20,6 +20,7 @@ type handlerserService interface {
 	GetURLsUser(context.Context, string) ([]models.ReturnedStructURL, error)
 	Ping(ctx context.Context) error
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
+	DeletedLinks(context.Context, []string) error
 }
 
 type handlers struct {
@@ -236,4 +237,33 @@ func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
 		logger.Log.Error("response recording error", zap.Error(err))
 	}
 
+}
+
+func (h *handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+	var listURLs []string
+
+	bodyByte, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Log.Error("error when reading the request body", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyByte, &listURLs)
+	if err != nil {
+		logger.Log.Error("error when reading the json conversion", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if len(listURLs) == 0 {
+		logger.Log.Error("sent an empty list of links to be deleted")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = h.nodeService.DeletedLinks(r.Context(), listURLs)
+	if err != nil {
+		logger.Log.Error("error when trying to delete", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
 }
