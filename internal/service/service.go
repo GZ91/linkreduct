@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -20,7 +19,7 @@ type Storeger interface {
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 	FindLongURL(context.Context, string) (string, bool, error)
 	GetLinksUser(context.Context, string) ([]models.ReturnedStructURL, error)
-	InitializingRemovalChannel(chan chan models.StructDelURLs) error
+	InitializingRemovalChannel(chan []models.StructDelURLs) error
 }
 
 // Storeger
@@ -36,7 +35,7 @@ func New(db Storeger, conf ConfigerService) *NodeService {
 		conf:         conf,
 		URLFormat:    regexp.MustCompile(`^(?:https?:\/\/)`),
 		URLFilter:    regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`),
-		chsURLForDel: make(chan chan models.StructDelURLs, 10),
+		chsURLForDel: make(chan []models.StructDelURLs),
 	}
 
 	err := Node.db.InitializingRemovalChannel(Node.chsURLForDel)
@@ -52,7 +51,7 @@ type NodeService struct {
 	conf         ConfigerService
 	URLFormat    *regexp.Regexp
 	URLFilter    *regexp.Regexp
-	chsURLForDel chan chan models.StructDelURLs
+	chsURLForDel chan []models.StructDelURLs
 }
 
 func (r *NodeService) GetURL(ctx context.Context, id string) (string, bool, error) {
@@ -112,22 +111,13 @@ func (r *NodeService) GetURLsUser(ctx context.Context, userID string) ([]models.
 	return r.db.GetLinksUser(ctx, userID)
 }
 
-func (r *NodeService) DeletedLinks(ctx context.Context, listURLs []string) error {
-	var UserID string
-	var userIDCTX models.CtxString = "userID"
-	UserIDVal := ctx.Value(userIDCTX)
-	if UserIDVal != nil {
-		UserID = UserIDVal.(string)
-	}
-	if UserID == "" {
-		return errors.New("userID is not filled in")
-	}
-	chURLs := make(chan models.StructDelURLs, len(listURLs))
+func (r *NodeService) DeletedLinks(listURLs []string, userID string) {
+
+	var dataForDel []models.StructDelURLs
 	for _, val := range listURLs {
-		data := models.StructDelURLs{URL: val, UserID: UserID}
-		chURLs <- data
+		data := models.StructDelURLs{URL: val, UserID: userID}
+		dataForDel = append(dataForDel, data)
 	}
-	close(chURLs)
-	r.chsURLForDel <- chURLs
-	return nil
+
+	r.chsURLForDel <- dataForDel
 }

@@ -20,7 +20,7 @@ type handlerserService interface {
 	GetURLsUser(context.Context, string) ([]models.ReturnedStructURL, error)
 	Ping(ctx context.Context) error
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
-	DeletedLinks(context.Context, []string) error
+	DeletedLinks([]string, string)
 }
 
 type handlers struct {
@@ -259,11 +259,17 @@ func (h *handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	err = h.nodeService.DeletedLinks(r.Context(), listURLs)
-	if err != nil {
-		logger.Log.Error("error when trying to delete", zap.Error(err))
-		w.WriteHeader(http.StatusInternalServerError)
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := r.Context().Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	if UserID == "" {
+		logger.Log.Error("userID is not filled in")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	go h.nodeService.DeletedLinks(listURLs, UserID)
 	w.WriteHeader(http.StatusAccepted)
 }

@@ -27,7 +27,7 @@ type db struct {
 	config  ConfigerStorage
 	genrun  GeneratorRunes
 	mutex   sync.Mutex
-	chsURLs chan chan models.StructDelURLs
+	chsURLs chan []models.StructDelURLs
 }
 
 func (r *db) setDB(ctx context.Context, key, value string) bool {
@@ -139,7 +139,7 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(chsURLs chan chan models.StructDelURLs) error {
+func (r *db) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
 	r.chsURLs = chsURLs
 	return nil
 }
