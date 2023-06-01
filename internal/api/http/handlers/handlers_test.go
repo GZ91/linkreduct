@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/GZ91/linkreduct/internal/app/config"
+	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/inmemory"
@@ -83,6 +84,9 @@ func TestGet400(t *testing.T) {
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
+
+		var userIDCTX models.CtxString = "userID"
+		req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
 
 		handls.GetLongURL(rec, req)
 
@@ -164,6 +168,6 @@ func SetupForTesting() {
 
 	genrun := genrunes.New()
 	NodeStorage := inmemory.New(context.Background(), conf, genrun)
-	NodeService := service.New(NodeStorage, conf)
+	NodeService := service.New(NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls = New(NodeService)
 }

@@ -55,10 +55,10 @@ func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	valueStruct, found := r.data[key]
-	if valueStruct.DeletedFlag {
-		return "", false, errorsapp.ErrLineURLDeleted
-	}
 	if found {
+		if valueStruct.DeletedFlag {
+			return "", false, errorsapp.ErrLineURLDeleted
+		}
 		ok = found
 		val = valueStruct.OriginalURL
 	}

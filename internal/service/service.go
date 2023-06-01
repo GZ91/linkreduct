@@ -29,16 +29,16 @@ type ConfigerService interface {
 	GetAddressServerURL() string
 }
 
-func New(db Storeger, conf ConfigerService) *NodeService {
+func New(db Storeger, conf ConfigerService, ChsURLForDel chan []models.StructDelURLs) *NodeService {
 	Node := &NodeService{
 		db:           db,
 		conf:         conf,
 		URLFormat:    regexp.MustCompile(`^(?:https?:\/\/)`),
 		URLFilter:    regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`),
-		chsURLForDel: make(chan []models.StructDelURLs),
+		ChsURLForDel: ChsURLForDel,
 	}
 
-	err := Node.db.InitializingRemovalChannel(Node.chsURLForDel)
+	err := Node.db.InitializingRemovalChannel(Node.ChsURLForDel)
 	if err != nil {
 		logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
 		return nil
@@ -51,7 +51,7 @@ type NodeService struct {
 	conf         ConfigerService
 	URLFormat    *regexp.Regexp
 	URLFilter    *regexp.Regexp
-	chsURLForDel chan []models.StructDelURLs
+	ChsURLForDel chan []models.StructDelURLs
 }
 
 func (r *NodeService) GetURL(ctx context.Context, id string) (string, bool, error) {
@@ -119,5 +119,5 @@ func (r *NodeService) DeletedLinks(listURLs []string, userID string) {
 		dataForDel = append(dataForDel, data)
 	}
 
-	r.chsURLForDel <- dataForDel
+	r.ChsURLForDel <- dataForDel
 }

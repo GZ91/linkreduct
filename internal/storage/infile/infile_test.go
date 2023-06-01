@@ -18,15 +18,15 @@ func Test_db_GetURL(t *testing.T) {
 	type fields struct {
 		generatorRunes GeneratorRunes
 		conf           *config.Config
-		data           map[string]models.StructURL
+		data           map[string]*models.StructURL
 		newdata        []string
 	}
 	type args struct {
 		key string
 	}
 
-	data := make(map[string]models.StructURL)
-	data["hswks"] = models.StructURL{ID: "1", ShortURL: "hswks", OriginalURL: "google.com"}
+	data := make(map[string]*models.StructURL)
+	data["hswks"] = &models.StructURL{ID: "1", ShortURL: "hswks", OriginalURL: "google.com"}
 
 	f := fields{
 		generatorRunes: genrunes.New(),
@@ -84,12 +84,12 @@ func Test_db_save(t *testing.T) {
 	type fields struct {
 		generatorRunes GeneratorRunes
 		conf           *config.Config
-		data           map[string]models.StructURL
+		data           map[string]*models.StructURL
 		newdata        []string
 	}
-	data := make(map[string]models.StructURL)
+	data := make(map[string]*models.StructURL)
 	FindModel := models.StructURL{ID: "1", ShortURL: "hswks", OriginalURL: "google.com"}
-	data["hswks"] = FindModel
+	data["hswks"] = &FindModel
 
 	tests := []struct {
 		name      string
@@ -152,12 +152,12 @@ func Test_db_save(t *testing.T) {
 				t.Errorf("save() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			r.newdata = make([]string, 1)
-			r.data = make(map[string]models.StructURL)
+			r.data = make(map[string]*models.StructURL)
 			r.open()
 			valStructm, ok := r.data[tt.findlink]
 			assert.Equal(t, tt.find, ok)
 			if ok {
-				assert.Equal(t, tt.find, reflect.DeepEqual(valStructm, tt.findModel))
+				assert.Equal(t, tt.find, reflect.DeepEqual(*valStructm, tt.findModel))
 			}
 			nameFile := tt.fields.conf.GetNameFileStorage()
 			os.Remove(nameFile)

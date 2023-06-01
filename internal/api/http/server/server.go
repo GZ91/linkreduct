@@ -10,6 +10,7 @@ import (
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/app/signalreception"
+	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/infile"
@@ -42,7 +43,7 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 		NodeStorage = inmemory.New(ctx, conf, GeneratorRunes)
 	}
 
-	NodeService := service.New(NodeStorage, conf)
+	NodeService := service.New(NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()

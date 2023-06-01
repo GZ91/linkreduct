@@ -305,6 +305,48 @@ func (_c *Storeger_GetURL_Call) RunAndReturn(run func(context.Context, string) (
 	return _c
 }
 
+// InitializingRemovalChannel provides a mock function with given fields: _a0
+func (_m *Storeger) InitializingRemovalChannel(_a0 chan []models.StructDelURLs) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(chan []models.StructDelURLs) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Storeger_InitializingRemovalChannel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InitializingRemovalChannel'
+type Storeger_InitializingRemovalChannel_Call struct {
+	*mock.Call
+}
+
+// InitializingRemovalChannel is a helper method to define mock.On call
+//   - _a0 chan []models.StructDelURLs
+func (_e *Storeger_Expecter) InitializingRemovalChannel(_a0 interface{}) *Storeger_InitializingRemovalChannel_Call {
+	return &Storeger_InitializingRemovalChannel_Call{Call: _e.mock.On("InitializingRemovalChannel", _a0)}
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) Run(run func(_a0 chan []models.StructDelURLs)) *Storeger_InitializingRemovalChannel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(chan []models.StructDelURLs))
+	})
+	return _c
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) Return(_a0 error) *Storeger_InitializingRemovalChannel_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) RunAndReturn(run func(chan []models.StructDelURLs) error) *Storeger_InitializingRemovalChannel_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Ping provides a mock function with given fields: _a0
 func (_m *Storeger) Ping(_a0 context.Context) error {
 	ret := _m.Called(_a0)

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service/mocks"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -69,8 +70,9 @@ func TestNodeService_GetURL(t *testing.T) {
 
 func TestNodeService_GetSmallLink(t *testing.T) {
 	type fields struct {
-		db   *mocks.Storeger
-		conf *mocks.ConfigerService
+		db           *mocks.Storeger
+		conf         *mocks.ConfigerService
+		chsURLForDel chan []models.StructDelURLs
 	}
 	type args struct {
 		longLink string
@@ -85,8 +87,9 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 		{
 			name: "Test Success",
 			fields: fields{
-				db:   mocks.NewStoreger(t),
-				conf: mocks.NewConfigerService(t),
+				db:           mocks.NewStoreger(t),
+				conf:         mocks.NewConfigerService(t),
+				chsURLForDel: make(chan []models.StructDelURLs),
 			},
 			args: args{
 				longLink: "http://google.com",
@@ -97,7 +100,9 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := New(tt.fields.db, tt.fields.conf)
+			l := make(chan []models.StructDelURLs)
+			tt.fields.db.EXPECT().InitializingRemovalChannel(l).Return(nil)
+			r := New(tt.fields.db, tt.fields.conf, l)
 
 			tt.fields.db.EXPECT().AddURL(context.Background(), tt.args.longLink).Return(tt.wantDB, nil).Maybe()
 			tt.fields.db.EXPECT().FindLongURL(context.Background(), tt.args.longLink).Return("", false, nil).Maybe()
