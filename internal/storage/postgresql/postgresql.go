@@ -321,13 +321,13 @@ func (d *DB) GroupingDataForDeleted() {
 }
 
 func (d *DB) FillBufferDelete() {
-	t := time.Tick(time.Second * 10)
+	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
 		select {
 		case val := <-d.chURLsForDel:
 			listForDel = append(listForDel, val)
-		case <-t:
+		case <-t.C:
 			if len(listForDel) > 0 {
 				d.deletedURLs(listForDel)
 				listForDel = nil
