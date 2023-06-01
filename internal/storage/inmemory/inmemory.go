@@ -20,7 +20,7 @@ type GeneratorRunes interface {
 }
 
 func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun}
+	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}
 }
 
 type db struct {

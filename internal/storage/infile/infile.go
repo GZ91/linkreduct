@@ -30,6 +30,7 @@ func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
 		generatorRunes: gen,
 		conf:           conf,
 		data:           make(map[string]*models.StructURL),
+		chURLsForDel:   make(chan models.StructDelURLs),
 	}
 	DB.open()
 	return DB

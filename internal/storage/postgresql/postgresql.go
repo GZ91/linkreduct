@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"time"
 )
 
 type ConfigerStorage interface {
@@ -29,7 +30,8 @@ type DB struct {
 	generatorRunes GeneratorRunes
 	ps             string
 	db             *sql.DB
-	chsURLs        chan []models.StructDelURLs
+	chsURLsForDel  chan []models.StructDelURLs
+	chURLsForDel   chan models.StructDelURLs
 }
 
 func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRunes) (*DB, error) {
@@ -45,6 +47,7 @@ func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRu
 	if err != nil {
 		return nil, err
 	}
+	db.chURLsForDel = make(chan models.StructDelURLs)
 	return db, err
 }
 
@@ -70,7 +73,7 @@ func (d *DB) createTable(ctx context.Context) error {
 	uuid VARCHAR(45)  NOT NULL,
 	ShortURL VARCHAR(250) NOT NULL,
     userID VARCHAR(45)  NOT NULL,
-    deletedFlag boolean, 
+    deletedFlag boolean DEFAULT FALSE, 
 	OriginalURL TEXT
 );`)
 	return err
@@ -300,6 +303,55 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 }
 
 func (d *DB) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
-	d.chsURLs = chsURLs
+	d.chsURLsForDel = chsURLs
+	go d.GroupingDataForDeleted()
+	go d.FillBufferDelete()
 	return nil
+}
+
+func (d *DB) GroupingDataForDeleted() {
+	for sliceVal := range d.chsURLsForDel {
+		sliceVal := sliceVal
+		go func() {
+			for _, val := range sliceVal {
+				d.chURLsForDel <- val
+			}
+		}()
+	}
+}
+
+func (d *DB) FillBufferDelete() {
+	t := time.Tick(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-d.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t:
+			if len(listForDel) > 0 {
+				d.deletedURLs(listForDel)
+				listForDel = nil
+			}
+		}
+
+	}
+}
+
+func (d *DB) deletedURLs(listForDel []models.StructDelURLs) {
+	ctx := context.Background()
+	tx, err := d.db.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		logger.Log.Error("error when trying to create a connection to the database", zap.Error(err))
+		return
+	}
+	pr, err := tx.PrepareContext(ctx, "UPDATE short_origin_reference SET deletedFlag = true WHERE ShortURL = $1 and userID=$2")
+	if err != nil {
+		logger.Log.Error("error when trying to create a runtime request template", zap.Error(err))
+		return
+	}
+	for _, val := range listForDel {
+		pr.Exec(val.URL, val.UserID)
+	}
+	tx.Commit()
 }
