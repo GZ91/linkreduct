@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service/mocks"
 	"github.com/stretchr/testify/assert"
+	"regexp"
 	"testing"
 )
 
@@ -111,6 +113,148 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 			if got, _ := r.GetSmallLink(context.Background(), tt.args.longLink); got != want {
 				t.Errorf("GetSmallLink() = %v, want %v", got, want)
 			}
+		})
+	}
+}
+
+func TestNodeService_AddBatchLink(t *testing.T) {
+	type fields struct {
+		db           *mocks.Storeger
+		conf         *mocks.ConfigerService
+		URLFormat    *regexp.Regexp
+		URLFilter    *regexp.Regexp
+		ChsURLForDel chan []models.StructDelURLs
+	}
+	type args struct {
+		ctx       context.Context
+		batchLink []models.IncomingBatchURL
+	}
+	ctx := context.Background()
+	var userIDCTX models.CtxString = "userID"
+	context.WithValue(ctx, userIDCTX, "userID")
+
+	tests := []struct {
+		name                 string
+		fields               fields
+		args                 args
+		wantReleasedBatchURL []models.ReleasedBatchURL
+	}{
+		{
+			name: "test 1",
+			fields: fields{
+				db:           mocks.NewStoreger(t),
+				conf:         mocks.NewConfigerService(t),
+				ChsURLForDel: make(chan []models.StructDelURLs),
+			},
+			args: args{
+				ctx:       ctx,
+				batchLink: make([]models.IncomingBatchURL, 0)},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &NodeService{
+				db:           tt.fields.db,
+				conf:         tt.fields.conf,
+				ChsURLForDel: tt.fields.ChsURLForDel,
+			}
+			var retBatchLink []models.ReleasedBatchURL
+			tt.fields.db.EXPECT().AddBatchLink(tt.args.ctx, tt.args.batchLink).Return(retBatchLink, nil).Maybe()
+			_, err := r.AddBatchLink(tt.args.ctx, tt.args.batchLink)
+			if !assert.NoError(t, err, fmt.Sprintf("AddBatchLink(conetxt.Bachground, make([]models.IncomingBatchURL, 0))")) {
+				return
+			}
+		})
+	}
+}
+
+func TestNodeService_Ping(t *testing.T) {
+	type fields struct {
+		db           *mocks.Storeger
+		conf         *mocks.ConfigerService
+		URLFormat    *regexp.Regexp
+		URLFilter    *regexp.Regexp
+		ChsURLForDel chan []models.StructDelURLs
+	}
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "test 1",
+			fields: fields{
+				db:           mocks.NewStoreger(t),
+				conf:         mocks.NewConfigerService(t),
+				ChsURLForDel: make(chan []models.StructDelURLs),
+			},
+			args: args{
+				ctx: context.Background(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &NodeService{
+				db:           tt.fields.db,
+				conf:         tt.fields.conf,
+				URLFormat:    tt.fields.URLFormat,
+				URLFilter:    tt.fields.URLFilter,
+				ChsURLForDel: tt.fields.ChsURLForDel,
+			}
+			tt.fields.db.EXPECT().Ping(tt.args.ctx).Return(nil).Maybe()
+			assert.NoError(t, r.Ping(tt.args.ctx), fmt.Sprintf("Ping(%v)", tt.args.ctx))
+		})
+	}
+}
+
+func TestNodeService_GetURLsUser(t *testing.T) {
+	type fields struct {
+		db           *mocks.Storeger
+		conf         *mocks.ConfigerService
+		URLFormat    *regexp.Regexp
+		URLFilter    *regexp.Regexp
+		ChsURLForDel chan []models.StructDelURLs
+	}
+	type args struct {
+		ctx    context.Context
+		userID string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []models.ReturnedStructURL
+	}{
+		{
+			name: "test 1",
+			fields: fields{
+				db:           mocks.NewStoreger(t),
+				conf:         mocks.NewConfigerService(t),
+				ChsURLForDel: make(chan []models.StructDelURLs),
+			},
+			args: args{
+				ctx:    context.Background(),
+				userID: "userID",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &NodeService{
+				db:           tt.fields.db,
+				conf:         tt.fields.conf,
+				URLFormat:    tt.fields.URLFormat,
+				URLFilter:    tt.fields.URLFilter,
+				ChsURLForDel: tt.fields.ChsURLForDel,
+			}
+			m := make([]models.ReturnedStructURL, 0)
+			tt.fields.db.EXPECT().GetLinksUser(tt.args.ctx, "userID").Return(m, nil).Maybe()
+			_, err := r.GetURLsUser(tt.args.ctx, tt.args.userID)
+			assert.NoError(t, err)
 		})
 	}
 }

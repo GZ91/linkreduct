@@ -14,6 +14,7 @@ import (
 	"regexp"
 )
 
+//go:generate mockery --name handlerserService --with-expecter
 type handlerserService interface {
 	GetSmallLink(context.Context, string) (string, error)
 	GetURL(context.Context, string) (string, bool, error)

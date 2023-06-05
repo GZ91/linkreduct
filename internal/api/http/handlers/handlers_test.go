@@ -170,4 +170,121 @@ func SetupForTesting() {
 	NodeStorage := inmemory.New(context.Background(), conf, genrun)
 	NodeService := service.New(NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls = New(NodeService)
+
+}
+
+func Test_handlers_PingDataBase(t *testing.T) {
+
+	SetupForTesting()
+
+	{
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+		handls.PingDataBase(rec, req)
+
+		res := rec.Result()
+		res.Body.Close()
+		assert.Equal(t, http.StatusOK, res.StatusCode, "TEST GET ping DB")
+	}
+
+}
+
+func Test_handlers_AddBatchLinks(t *testing.T) {
+	SetupForTesting()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(`[
+    {
+        "correlation_id": "1",
+        "original_url": "https://www.deepl.com"
+    },
+    {
+        "correlation_id": "2",
+        "original_url": "https://www.mail.ru"
+    },
+    {
+        "correlation_id": "3",
+        "original_url": "https://www.google.com"
+    }
+] `))
+	var userIDCTX models.CtxString = "userID"
+	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	handls.AddBatchLinks(rec, req)
+
+	res := rec.Result()
+	res.Body.Close()
+	assert.Equal(t, http.StatusCreated, res.StatusCode, "TEST GET ping DB")
+
+}
+
+func Test_handlers_GetURLsUser(t *testing.T) {
+	SetupForTesting()
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+
+	var userIDCTX models.CtxString = "userID"
+	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	handls.GetURLsUser(rec, req)
+
+	res := rec.Result()
+	res.Body.Close()
+	assert.Equal(t, http.StatusNoContent, res.StatusCode, "TEST GET ping DB")
+}
+
+func Test_handlers_GetURLsUser2(t *testing.T) {
+	SetupForTesting()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(`[
+    {
+        "correlation_id": "1",
+        "original_url": "https://www.deepl.com"
+    },
+    {
+        "correlation_id": "2",
+        "original_url": "https://www.mail.ru"
+    },
+    {
+        "correlation_id": "3",
+        "original_url": "https://www.google.com"
+    }
+] `))
+	var userIDCTX models.CtxString = "userID"
+	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	handls.AddBatchLinks(rec, req)
+
+	res := rec.Result()
+	res.Body.Close()
+	assert.Equal(t, http.StatusCreated, res.StatusCode, "TEST GET ping DB")
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+
+	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	handls.GetURLsUser(rec, req)
+
+	res = rec.Result()
+	res.Body.Close()
+	assert.Equal(t, http.StatusOK, res.StatusCode, "TEST GET ping DB")
+}
+
+func Test_handlers_DeleteURLs(t *testing.T) {
+	SetupForTesting()
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(`["VeJoV", "eCuqR", "oemJV"] `))
+
+	var userIDCTX models.CtxString = "userID"
+	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	handls.DeleteURLs(rec, req)
+
+	res := rec.Result()
+	res.Body.Close()
+	assert.Equal(t, http.StatusAccepted, res.StatusCode, "TEST GET ping DB")
+
 }
