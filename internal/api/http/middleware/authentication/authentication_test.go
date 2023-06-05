@@ -18,7 +18,6 @@ func TestAuthentication(t *testing.T) {
 	resHandle := Authentication(handle)
 
 	resHandle.ServeHTTP(rec, req)
-
 	var userID string
 	for _, val := range rec.Result().Cookies() {
 		if val.Name == "Authorization" {
@@ -26,5 +25,6 @@ func TestAuthentication(t *testing.T) {
 			break
 		}
 	}
+	rec.Result().Body.Close()
 	assert.NotEqual(t, userID, "", "TEST middleware authentication")
 }

@@ -131,7 +131,7 @@ func TestNodeService_AddBatchLink(t *testing.T) {
 	}
 	ctx := context.Background()
 	var userIDCTX models.CtxString = "userID"
-	context.WithValue(ctx, userIDCTX, "userID")
+	ctx = context.WithValue(ctx, userIDCTX, "userID")
 
 	tests := []struct {
 		name                 string
@@ -161,7 +161,7 @@ func TestNodeService_AddBatchLink(t *testing.T) {
 			var retBatchLink []models.ReleasedBatchURL
 			tt.fields.db.EXPECT().AddBatchLink(tt.args.ctx, tt.args.batchLink).Return(retBatchLink, nil).Maybe()
 			_, err := r.AddBatchLink(tt.args.ctx, tt.args.batchLink)
-			if !assert.NoError(t, err, fmt.Sprintf("AddBatchLink(conetxt.Bachground, make([]models.IncomingBatchURL, 0))")) {
+			if !assert.NoError(t, err, "AddBatchLink(conetxt.Bachground, make([]models.IncomingBatchURL, 0))") {
 				return
 			}
 		})
