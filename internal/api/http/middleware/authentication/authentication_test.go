@@ -19,12 +19,14 @@ func TestAuthentication(t *testing.T) {
 
 	resHandle.ServeHTTP(rec, req)
 	var userID string
-	for _, val := range rec.Result().Cookies() {
+	result := rec.Result()
+	defer result.Body.Close()
+	for _, val := range result.Cookies() {
 		if val.Name == "Authorization" {
 			userID = val.Value
 			break
 		}
 	}
-	rec.Result().Body.Close()
+
 	assert.NotEqual(t, userID, "", "TEST middleware authentication")
 }
