@@ -93,6 +93,9 @@ func (r *NodeService) AddBatchLink(ctx context.Context, batchLink []models.Incom
 	}
 
 	releasedBatchURL, errs = r.db.AddBatchLink(ctx, batchLink)
+	for index, val := range releasedBatchURL {
+		releasedBatchURL[index].ShortURL = r.conf.GetAddressServerURL() + val.ShortURL
+	}
 	return
 }
 
