@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -37,8 +36,7 @@ type DB struct {
 func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRunes) (*DB, error) {
 	db := &DB{conf: config, generatorRunes: generatorRunes}
 	ConfDB := db.conf.GetConfDB()
-	db.ps = fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-		ConfDB.Address, ConfDB.User, ConfDB.Password, ConfDB.Dbname)
+	db.ps = ConfDB.StringServer
 	err := db.openDB()
 	if err != nil {
 		return nil, err

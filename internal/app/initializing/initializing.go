@@ -13,7 +13,7 @@ func Configuration() *config.Config {
 	addressServer, addressServerForURL, logLvl, pathFileStorage, connectionStringDB := ReadParams()
 	logger.Initializing(logLvl)
 	conf := config.New(false, addressServer, addressServerForURL, 10, 5, pathFileStorage)
-	conf.ConfigureDBPostgresql(initializingDB(connectionStringDB))
+	conf.ConfigureDBPostgresql(connectionStringDB)
 	return conf
 }
 
@@ -72,16 +72,4 @@ func CheckChangeBaseURL(addressServer, addressServerURL string) string {
 		port = port + "/"
 	}
 	return strAddress[0] + ":" + strAddress[1] + ":" + port
-}
-
-func initializingDB(connectionStringDB string) (string, string, string, string) {
-	var user, password, address, dbName string
-	if connectionStringDB == "" {
-		return "", "", "", ""
-	}
-	user = connectionStringDB[:strings.Index(connectionStringDB, ":")]
-	password = connectionStringDB[strings.Index(connectionStringDB, ":")+1 : strings.Index(connectionStringDB, "@")]
-	address = connectionStringDB[strings.Index(connectionStringDB, "(")+1 : strings.Index(connectionStringDB, ")")]
-	dbName = connectionStringDB[strings.LastIndex(connectionStringDB, "/")+1:]
-	return address, user, password, dbName
 }
