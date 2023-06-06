@@ -14,11 +14,14 @@ import (
 	"regexp"
 )
 
+//go:generate mockery --name handlerserService --with-expecter
 type handlerserService interface {
 	GetSmallLink(context.Context, string) (string, error)
 	GetURL(context.Context, string) (string, bool, error)
+	GetURLsUser(context.Context, string) ([]models.ReturnedStructURL, error)
 	Ping(ctx context.Context) error
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
+	DeletedLinks([]string, string)
 }
 
 type handlers struct {
@@ -70,8 +73,12 @@ func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 func (h *handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	link, ok, err := h.nodeService.GetURL(r.Context(), id)
-	if err != nil {
+	if err != nil && err != errorsapp.ErrLineURLDeleted {
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err == errorsapp.ErrLineURLDeleted {
+		w.WriteHeader(http.StatusGone)
 		return
 	}
 	if ok {
@@ -84,7 +91,6 @@ func (h *handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) AddLongLinkJSON(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
-
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -194,4 +200,77 @@ func (h *handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Log.Error("response recording error", zap.String("error", err.Error()))
 	}
+}
+
+func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := r.Context().Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	if UserID == "" {
+		logger.Log.Info("trying to execute a method to retrieve a URL by a user by an unauthorized user")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	returnedURLs, err := h.nodeService.GetURLsUser(r.Context(), UserID)
+	if err != nil {
+		logger.Log.Error("when getting URLs on the user side", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if len(returnedURLs) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	jsonText, err := json.Marshal(returnedURLs)
+	if err != nil {
+		logger.Log.Error("when creating a json file in the URL return procedure by user", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(jsonText)
+	if err != nil {
+		logger.Log.Error("response recording error", zap.Error(err))
+	}
+
+}
+
+func (h *handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+	var listURLs []string
+
+	bodyByte, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Log.Error("error when reading the request body", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = json.Unmarshal(bodyByte, &listURLs)
+	if err != nil {
+		logger.Log.Error("error when reading the json conversion", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if len(listURLs) == 0 {
+		logger.Log.Error("sent an empty list of links to be deleted")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := r.Context().Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	if UserID == "" {
+		logger.Log.Error("userID is not filled in")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	go h.nodeService.DeletedLinks(listURLs, UserID)
+	w.WriteHeader(http.StatusAccepted)
 }

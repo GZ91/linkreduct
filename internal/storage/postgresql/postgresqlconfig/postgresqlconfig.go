@@ -1,16 +1,13 @@
 package postgresqlconfig
 
 type ConfigDB struct {
-	Address  string
-	User     string
-	Password string
-	Dbname   string
+	StringServer string
 }
 
-func New(address, user, password, dbname string) *ConfigDB {
-	return &ConfigDB{Address: address, User: user, Password: password, Dbname: dbname}
+func New(StringServer string) *ConfigDB {
+	return &ConfigDB{StringServer: StringServer}
 }
 
 func (d ConfigDB) Empty() bool {
-	return d.Address == ""
+	return d.StringServer == ""
 }
