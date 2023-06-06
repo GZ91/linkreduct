@@ -253,6 +253,7 @@ func TestNodeService_GetURLsUser(t *testing.T) {
 			}
 			m := make([]models.ReturnedStructURL, 0)
 			tt.fields.db.EXPECT().GetLinksUser(tt.args.ctx, "userID").Return(m, nil).Maybe()
+			tt.fields.conf.EXPECT().GetAddressServerURL().Return("http://localhost:8080/").Maybe()
 			_, err := r.GetURLsUser(tt.args.ctx, tt.args.userID)
 			assert.NoError(t, err)
 		})
