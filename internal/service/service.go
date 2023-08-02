@@ -19,7 +19,7 @@ type Storeger interface {
 	AddBatchLink(context.Context, []models.IncomingBatchURL) ([]models.ReleasedBatchURL, error)
 	FindLongURL(context.Context, string) (string, bool, error)
 	GetLinksUser(context.Context, string) ([]models.ReturnedStructURL, error)
-	InitializingRemovalChannel(chan []models.StructDelURLs) error
+	InitializingRemovalChannel(context.Context, chan []models.StructDelURLs) error
 }
 
 // Storeger
@@ -29,7 +29,7 @@ type ConfigerService interface {
 	GetAddressServerURL() string
 }
 
-func New(db Storeger, conf ConfigerService, ChsURLForDel chan []models.StructDelURLs) *NodeService {
+func New(ctx context.Context, db Storeger, conf ConfigerService, ChsURLForDel chan []models.StructDelURLs) *NodeService {
 	Node := &NodeService{
 		db:           db,
 		conf:         conf,
@@ -38,7 +38,7 @@ func New(db Storeger, conf ConfigerService, ChsURLForDel chan []models.StructDel
 		ChsURLForDel: ChsURLForDel,
 	}
 
-	err := Node.db.InitializingRemovalChannel(Node.ChsURLForDel)
+	err := Node.db.InitializingRemovalChannel(ctx, Node.ChsURLForDel)
 	if err != nil {
 		logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
 		return nil
@@ -131,4 +131,9 @@ func (r *NodeService) DeletedLinks(listURLs []string, userID string) {
 	}
 
 	r.ChsURLForDel <- dataForDel
+}
+
+func (r *NodeService) Close() error {
+	close(r.ChsURLForDel)
+	return nil
 }

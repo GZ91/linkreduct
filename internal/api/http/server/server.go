@@ -43,7 +43,7 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 		NodeStorage = inmemory.New(ctx, conf, GeneratorRunes)
 	}
 
-	NodeService := service.New(NodeStorage, conf, make(chan []models.StructDelURLs))
+	NodeService := service.New(ctx, NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()
@@ -68,7 +68,8 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 
 	go signalreception.OnClose([]signalreception.Closer{
 		&signalreception.Stopper{CloserInterf: &Server, Name: "server"},
-		&signalreception.Stopper{CloserInterf: NodeStorage, Name: "node storage"}},
+		&signalreception.Stopper{CloserInterf: NodeStorage, Name: "node storage"},
+		&signalreception.Stopper{CloserInterf: NodeService, Name: "node service"}},
 		&wg)
 
 	if err := Server.ListenAndServe(); err != nil {

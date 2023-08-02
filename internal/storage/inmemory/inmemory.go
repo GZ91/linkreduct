@@ -141,7 +141,7 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
+func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
 	go r.GroupingDataForDeleted()
 	go r.FillBufferDelete()

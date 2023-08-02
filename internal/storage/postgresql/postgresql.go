@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"sync"
 	"time"
 )
 
@@ -300,25 +301,36 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (d *DB) InitializingRemovalChannel(chsURLs chan []models.StructDelURLs) error {
+func (d *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	d.chsURLsForDel = chsURLs
-	go d.GroupingDataForDeleted()
-	go d.FillBufferDelete()
+	go d.GroupingDataForDeleted(ctx)
+	go d.FillBufferDelete(ctx)
 	return nil
 }
 
-func (d *DB) GroupingDataForDeleted() {
-	for sliceVal := range d.chsURLsForDel {
-		sliceVal := sliceVal
-		go func() {
-			for _, val := range sliceVal {
-				d.chURLsForDel <- val
-			}
-		}()
+func (d *DB) GroupingDataForDeleted(ctx context.Context) {
+
+	var wg sync.WaitGroup
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			close(d.chURLsForDel)
+			return
+		default:
+			sliceVal := <-d.chsURLsForDel
+			wg.Add(1)
+			go func(*sync.WaitGroup) {
+				for _, val := range sliceVal {
+					d.chURLsForDel <- val
+				}
+				wg.Done()
+			}(&wg)
+		}
 	}
 }
 
-func (d *DB) FillBufferDelete() {
+func (d *DB) FillBufferDelete(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
