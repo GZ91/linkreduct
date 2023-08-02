@@ -168,7 +168,7 @@ func SetupForTesting() {
 
 	genrun := genrunes.New()
 	NodeStorage := inmemory.New(context.Background(), conf, genrun)
-	NodeService := service.New(NodeStorage, conf, make(chan []models.StructDelURLs))
+	NodeService := service.New(context.Background(), NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls = New(NodeService)
 
 }

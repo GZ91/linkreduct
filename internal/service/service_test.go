@@ -103,8 +103,8 @@ func TestNodeService_GetSmallLink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l := make(chan []models.StructDelURLs)
-			tt.fields.db.EXPECT().InitializingRemovalChannel(l).Return(nil)
-			r := New(tt.fields.db, tt.fields.conf, l)
+			tt.fields.db.EXPECT().InitializingRemovalChannel(context.Background(), l).Return(nil)
+			r := New(context.Background(), tt.fields.db, tt.fields.conf, l)
 
 			tt.fields.db.EXPECT().AddURL(context.Background(), tt.args.longLink).Return(tt.wantDB, nil).Maybe()
 			tt.fields.db.EXPECT().FindLongURL(context.Background(), tt.args.longLink).Return("", false, nil).Maybe()
