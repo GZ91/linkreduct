@@ -27,8 +27,8 @@ func New(debug bool, addressServer, addressServerURL string, maxIterRuneGen int,
 	}
 }
 
-func (r *Config) ConfigureDBPostgresql(address, user, password, dbname string) {
-	r.configDB = postgresqlconfig.New(address, user, password, dbname)
+func (r *Config) ConfigureDBPostgresql(StringServer string) {
+	r.configDB = postgresqlconfig.New(StringServer)
 }
 
 func (r *Config) GetConfDB() *postgresqlconfig.ConfigDB {

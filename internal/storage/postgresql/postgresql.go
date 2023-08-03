@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -12,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 type ConfigerStorage interface {
@@ -29,13 +30,14 @@ type DB struct {
 	generatorRunes GeneratorRunes
 	ps             string
 	db             *sql.DB
+	chsURLsForDel  chan []models.StructDelURLs
+	chURLsForDel   chan models.StructDelURLs
 }
 
 func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRunes) (*DB, error) {
 	db := &DB{conf: config, generatorRunes: generatorRunes}
 	ConfDB := db.conf.GetConfDB()
-	db.ps = fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
-		ConfDB.Address, ConfDB.User, ConfDB.Password, ConfDB.Dbname)
+	db.ps = ConfDB.StringServer
 	err := db.openDB()
 	if err != nil {
 		return nil, err
@@ -44,6 +46,7 @@ func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRu
 	if err != nil {
 		return nil, err
 	}
+	db.chURLsForDel = make(chan models.StructDelURLs)
 	return db, err
 }
 
@@ -68,6 +71,8 @@ func (d *DB) createTable(ctx context.Context) error {
 	id serial PRIMARY KEY,
 	uuid VARCHAR(45)  NOT NULL,
 	ShortURL VARCHAR(250) NOT NULL,
+    userID VARCHAR(45)  NOT NULL,
+    deletedFlag boolean DEFAULT FALSE, 
 	OriginalURL TEXT
 );`)
 	return err
@@ -84,6 +89,13 @@ func (d *DB) Ping(ctx context.Context) error {
 }
 
 func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+
 	con, err := d.db.Conn(ctx)
 	if err != nil {
 		logger.Log.Error("failed to connect to the database", zap.Error(err))
@@ -113,7 +125,8 @@ func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
 		}
 	}
 
-	_, err = con.ExecContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);", uuid.New().String(), shorturl, URL)
+	_, err = con.ExecContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl, userID) VALUES ($1, $2, $3, $4);",
+		uuid.New().String(), shorturl, URL, UserID)
 	if err != nil {
 		logger.Log.Error("error when adding a record to the database", zap.Error(err))
 	}
@@ -127,13 +140,17 @@ func (d *DB) GetURL(ctx context.Context, shortURL string) (string, bool, error) 
 		return "", false, err
 	}
 	defer con.Close()
-	row := con.QueryRowContext(ctx, `SELECT originalurl
+	row := con.QueryRowContext(ctx, `SELECT originalurl, deletedFlag 
 	FROM short_origin_reference WHERE shorturl = $1 limit 1`, shortURL)
 	var originurl string
-	err = row.Scan(&originurl)
+	var deletedFlag bool
+	err = row.Scan(&originurl, &deletedFlag)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		logger.Log.Error("when scanning the request for the original link", zap.Error(err))
 		return "", false, err
+	}
+	if deletedFlag {
+		return "", false, errorsapp.ErrLineURLDeleted
 	}
 	if originurl != "" {
 		return originurl, true, nil
@@ -167,6 +184,13 @@ func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 }
 
 func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+
 	tx, err := d.db.Begin()
 	defer tx.Rollback()
 
@@ -183,7 +207,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 		logger.Log.Error("when initializing a long link search pattern", zap.Error(err))
 		return nil, err
 	}
-	execInsertLongURLInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl) VALUES ($1, $2, $3);")
+	execInsertLongURLInBase, err := tx.PrepareContext(ctx, "INSERT INTO short_origin_reference(uuid, shorturl, originalurl, userID) VALUES ($1, $2, $3, $4);")
 	if err != nil {
 		logger.Log.Error("when initializing the add string pattern", zap.Error(err))
 		return nil, err
@@ -228,7 +252,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 			}
 		}
 
-		_, err = execInsertLongURLInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL)
+		_, err = execInsertLongURLInBase.ExecContext(ctx, uuid.New().String(), shorturl, incomingLink.OriginalURL, UserID)
 		if err != nil {
 			logger.Log.Error("When creating a string with a long link in the database", zap.Error(err))
 			tx.Rollback()
@@ -244,4 +268,100 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 		return nil, err
 	}
 	return
+}
+
+func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	con, err := d.db.Conn(ctx)
+	if err != nil {
+		logger.Log.Error("failed to connect to the database", zap.Error(err))
+		return nil, err
+	}
+	defer con.Close()
+
+	rows, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
+	FROM short_origin_reference WHERE userID = $1`, userID)
+	if err != nil || rows.Err() != nil {
+		if err != sql.ErrNoRows || rows.Err() != sql.ErrNoRows {
+			logger.Log.Error("when reading data from the database", zap.Error(err))
+			return nil, err
+		}
+	}
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	returnData := make([]models.ReturnedStructURL, 0)
+
+	for rows.Next() {
+		var shortURL, originalURL string
+		rows.Scan(&shortURL, &originalURL)
+		returnData = append(returnData, models.ReturnedStructURL{OriginalURL: originalURL, ShortURL: shortURL})
+
+	}
+	return returnData, nil
+}
+
+func (d *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+	d.chsURLsForDel = chsURLs
+	go d.GroupingDataForDeleted(ctx)
+	go d.FillBufferDelete(ctx)
+	return nil
+}
+
+func (d *DB) GroupingDataForDeleted(ctx context.Context) {
+
+	var wg sync.WaitGroup
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			close(d.chURLsForDel)
+			return
+		default:
+			sliceVal := <-d.chsURLsForDel
+			wg.Add(1)
+			go func(*sync.WaitGroup) {
+				for _, val := range sliceVal {
+					d.chURLsForDel <- val
+				}
+				wg.Done()
+			}(&wg)
+		}
+	}
+}
+
+func (d *DB) FillBufferDelete(ctx context.Context) {
+	t := time.NewTicker(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-d.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t.C:
+			if len(listForDel) > 0 {
+				d.deletedURLs(listForDel)
+				listForDel = nil
+			}
+		}
+
+	}
+}
+
+func (d *DB) deletedURLs(listForDel []models.StructDelURLs) {
+	ctx := context.Background()
+	tx, err := d.db.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		logger.Log.Error("error when trying to create a connection to the database", zap.Error(err))
+		return
+	}
+	pr, err := tx.PrepareContext(ctx, "UPDATE short_origin_reference SET deletedFlag = true WHERE ShortURL = $1 and userID=$2")
+	if err != nil {
+		logger.Log.Error("error when trying to create a runtime request template", zap.Error(err))
+		return
+	}
+	for _, val := range listForDel {
+		pr.Exec(val.URL, val.UserID)
+	}
+	tx.Commit()
 }

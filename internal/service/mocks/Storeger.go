@@ -190,6 +190,61 @@ func (_c *Storeger_FindLongURL_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
+// GetLinksUser provides a mock function with given fields: _a0, _a1
+func (_m *Storeger) GetLinksUser(_a0 context.Context, _a1 string) ([]models.ReturnedStructURL, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 []models.ReturnedStructURL
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]models.ReturnedStructURL, error)); ok {
+		return rf(_a0, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []models.ReturnedStructURL); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]models.ReturnedStructURL)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Storeger_GetLinksUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLinksUser'
+type Storeger_GetLinksUser_Call struct {
+	*mock.Call
+}
+
+// GetLinksUser is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 string
+func (_e *Storeger_Expecter) GetLinksUser(_a0 interface{}, _a1 interface{}) *Storeger_GetLinksUser_Call {
+	return &Storeger_GetLinksUser_Call{Call: _e.mock.On("GetLinksUser", _a0, _a1)}
+}
+
+func (_c *Storeger_GetLinksUser_Call) Run(run func(_a0 context.Context, _a1 string)) *Storeger_GetLinksUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Storeger_GetLinksUser_Call) Return(_a0 []models.ReturnedStructURL, _a1 error) *Storeger_GetLinksUser_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Storeger_GetLinksUser_Call) RunAndReturn(run func(context.Context, string) ([]models.ReturnedStructURL, error)) *Storeger_GetLinksUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetURL provides a mock function with given fields: _a0, _a1
 func (_m *Storeger) GetURL(_a0 context.Context, _a1 string) (string, bool, error) {
 	ret := _m.Called(_a0, _a1)
@@ -246,6 +301,49 @@ func (_c *Storeger_GetURL_Call) Return(_a0 string, _a1 bool, _a2 error) *Storege
 }
 
 func (_c *Storeger_GetURL_Call) RunAndReturn(run func(context.Context, string) (string, bool, error)) *Storeger_GetURL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// InitializingRemovalChannel provides a mock function with given fields: _a0, _a1
+func (_m *Storeger) InitializingRemovalChannel(_a0 context.Context, _a1 chan []models.StructDelURLs) error {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, chan []models.StructDelURLs) error); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Storeger_InitializingRemovalChannel_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InitializingRemovalChannel'
+type Storeger_InitializingRemovalChannel_Call struct {
+	*mock.Call
+}
+
+// InitializingRemovalChannel is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 chan []models.StructDelURLs
+func (_e *Storeger_Expecter) InitializingRemovalChannel(_a0 interface{}, _a1 interface{}) *Storeger_InitializingRemovalChannel_Call {
+	return &Storeger_InitializingRemovalChannel_Call{Call: _e.mock.On("InitializingRemovalChannel", _a0, _a1)}
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) Run(run func(_a0 context.Context, _a1 chan []models.StructDelURLs)) *Storeger_InitializingRemovalChannel_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(chan []models.StructDelURLs))
+	})
+	return _c
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) Return(_a0 error) *Storeger_InitializingRemovalChannel_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Storeger_InitializingRemovalChannel_Call) RunAndReturn(run func(context.Context, chan []models.StructDelURLs) error) *Storeger_InitializingRemovalChannel_Call {
 	_c.Call.Return(run)
 	return _c
 }

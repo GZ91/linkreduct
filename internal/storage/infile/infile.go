@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type GeneratorRunes interface {
@@ -28,7 +29,8 @@ func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
 	DB := &db{
 		generatorRunes: gen,
 		conf:           conf,
-		data:           make(map[string]models.StructURL),
+		data:           make(map[string]*models.StructURL),
+		chURLsForDel:   make(chan models.StructDelURLs),
 	}
 	DB.open()
 	return DB
@@ -38,8 +40,10 @@ type db struct {
 	generatorRunes GeneratorRunes
 	conf           ConfigerStorage
 	mutex          sync.Mutex
-	data           map[string]models.StructURL
+	data           map[string]*models.StructURL
 	newdata        []string
+	chsURLsForDel  chan []models.StructDelURLs
+	chURLsForDel   chan models.StructDelURLs
 }
 
 func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
@@ -48,6 +52,9 @@ func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
 	datainModel, ok := r.data[key]
 	var retval string
 	if ok {
+		if datainModel.DeletedFlag {
+			return "", false, errorsapp.ErrLineURLDeleted
+		}
 		retval = datainModel.OriginalURL
 	}
 	return retval, ok, nil
@@ -58,11 +65,17 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	model := models.StructURL{
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	model := &models.StructURL{
 		ID:          uuid.New().String(),
 		ShortURL:    shortURL,
 		OriginalURL: url,
+		UserID:      UserID,
 	}
 	r.newdata = append(r.newdata, shortURL)
 	r.mutex.Lock()
@@ -136,8 +149,8 @@ func (r *db) open() (errs error) {
 	scaner := bufio.NewScanner(file)
 	for scaner.Scan() {
 		data := scaner.Bytes()
-		modelData := models.StructURL{}
-		err := json.Unmarshal(data, &modelData)
+		modelData := &models.StructURL{}
+		err := json.Unmarshal(data, modelData)
 		if err != nil {
 			logger.Log.Error("error when trying to decode a string", zap.String("error", err.Error()))
 			errs = err
@@ -209,4 +222,59 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 	return
+}
+
+func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	returnData := make([]models.ReturnedStructURL, 0)
+	for _, val := range r.data {
+		if val.UserID == userID {
+			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
+		}
+	}
+	return returnData, nil
+}
+
+func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+	r.chsURLsForDel = chsURLs
+	go r.GroupingDataForDeleted()
+	go r.FillBufferDelete()
+	return nil
+}
+
+func (r *db) GroupingDataForDeleted() {
+	for sliceVal := range r.chsURLsForDel {
+		sliceVal := sliceVal
+		go func() {
+			for _, val := range sliceVal {
+				r.chURLsForDel <- val
+			}
+		}()
+	}
+}
+
+func (r *db) FillBufferDelete() {
+	t := time.NewTicker(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-r.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t.C:
+			if len(listForDel) > 0 {
+				r.deletedURLs(listForDel)
+			}
+		}
+
+	}
+}
+
+func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+	for _, val := range listForDel {
+		for index := range r.data {
+			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {
+				r.data[index].DeletedFlag = true
+				break
+			}
+		}
+	}
 }

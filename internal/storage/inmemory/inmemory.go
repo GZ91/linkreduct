@@ -5,8 +5,10 @@ import (
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 type ConfigerStorage interface {
@@ -18,27 +20,48 @@ type GeneratorRunes interface {
 }
 
 func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]string, 1), config: conf, genrun: genrun}
+	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}
 }
 
 type db struct {
-	data   map[string]string
-	config ConfigerStorage
-	genrun GeneratorRunes
-	mutex  sync.Mutex
+	data          map[string]*models.StructURL
+	config        ConfigerStorage
+	genrun        GeneratorRunes
+	mutex         sync.Mutex
+	chsURLsForDel chan []models.StructDelURLs
+	chURLsForDel  chan models.StructDelURLs
 }
 
-func (r *db) setDB(key, value string) bool {
+func (r *db) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.data[key] = value
+	var UserID string
+	var userIDCTX models.CtxString = "userID"
+	UserIDVal := ctx.Value(userIDCTX)
+	if UserIDVal != nil {
+		UserID = UserIDVal.(string)
+	}
+	StructURL := &models.StructURL{
+		OriginalURL: value,
+		ShortURL:    key,
+		UserID:      UserID,
+		ID:          uuid.New().String(),
+	}
+	r.data[key] = StructURL
 	return true
 }
 
 func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	val, ok = r.data[key]
+	valueStruct, found := r.data[key]
+	if found {
+		if valueStruct.DeletedFlag {
+			return "", false, errorsapp.ErrLineURLDeleted
+		}
+		ok = found
+		val = valueStruct.OriginalURL
+	}
 	return
 }
 
@@ -60,7 +83,7 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 			iterLen++
 			continue
 		}
-		r.setDB(idString, url)
+		r.setDB(ctx, idString, url)
 		return idString, nil
 	}
 }
@@ -77,7 +100,7 @@ func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
-		if val == OriginalURL {
+		if val.OriginalURL == OriginalURL {
 			return key, true, nil
 		}
 	}
@@ -106,4 +129,59 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
 	return
+}
+
+func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+	returnData := make([]models.ReturnedStructURL, 0)
+	for _, val := range r.data {
+		if val.UserID == userID {
+			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
+		}
+	}
+	return returnData, nil
+}
+
+func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+	r.chsURLsForDel = chsURLs
+	go r.GroupingDataForDeleted()
+	go r.FillBufferDelete()
+	return nil
+}
+
+func (r *db) GroupingDataForDeleted() {
+	for sliceVal := range r.chsURLsForDel {
+		sliceVal := sliceVal
+		go func() {
+			for _, val := range sliceVal {
+				r.chURLsForDel <- val
+			}
+		}()
+	}
+}
+
+func (r *db) FillBufferDelete() {
+	t := time.NewTicker(time.Second * 10)
+	var listForDel []models.StructDelURLs
+	for {
+		select {
+		case val := <-r.chURLsForDel:
+			listForDel = append(listForDel, val)
+		case <-t.C:
+			if len(listForDel) > 0 {
+				r.deletedURLs(listForDel)
+			}
+		}
+
+	}
+}
+
+func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+	for _, val := range listForDel {
+		for index := range r.data {
+			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {
+				r.data[index].DeletedFlag = true
+				break
+			}
+		}
+	}
 }
