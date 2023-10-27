@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,8 +14,10 @@ import (
 )
 
 func Test_handlers_AddLongLinkJSON(t *testing.T) {
-	SetupForTesting(t)
+	mockStorager := SetupForTesting(t)
 	targetLink := "https://practicum.yandex.ru"
+	mockStorager.On("FindLongURL", mock_test.Anything, targetLink).Return("nhjsdf", true, nil)
+	mockStorager.On("GetURL", mock_test.Anything, "nhjsdf").Return(targetLink, true, nil)
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -62,4 +65,11 @@ func Test_handlers_AddLongLinkJSON(t *testing.T) {
 
 	assert.Equal(t, targetLink, val, "TEST GET 307")
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "TEST GET 307")
+}
+
+func BenchmarkAddLongLinkJSON(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		Test_handlers_AddLongLinkJSON(t)
+	}
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"github.com/GZ91/linkreduct/internal/service/mocks"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	mock_test "github.com/stretchr/testify/mock"
@@ -16,7 +15,7 @@ import (
 func Test_handlers_AddLongLink(t *testing.T) {
 	mockStorager := SetupForTesting(t)
 	targetLink := "http://google.com"
-	mocksForAddLongLink(mockStorager, targetLink)
+	mockStorager.On("FindLongURL", mock_test.Anything, targetLink).Return("nhjsdf", true, nil)
 
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
@@ -62,6 +61,9 @@ func Test_handlers_AddLongLink(t *testing.T) {
 	assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "TEST GET 307")
 }
 
-func mocksForAddLongLink(storeger *mocks.Storeger, link string) {
-	storeger.On("FindLongURL", mock_test.Anything, link).Return("nhjsdf", true, nil)
+func BenchmarkAddLongLink(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		Test_handlers_AddLongLink(t)
+	}
 }

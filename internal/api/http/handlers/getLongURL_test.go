@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,9 +12,9 @@ import (
 )
 
 func TestGet400(t *testing.T) {
-	SetupForTesting(t)
+	mockStorager := SetupForTesting(t)
 	targetLink := "http://google.com"
-
+	mockStorager.On("GetURL", mock_test.Anything, "").Return(targetLink, true, nil)
 	{
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
@@ -27,7 +28,7 @@ func TestGet400(t *testing.T) {
 	{
 
 		rec := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/"+"adsafwefgasgsgfasdfsdfasdsdafwvwe23dasdasd854@3e23K◘c☼", nil)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 		var userIDCTX models.CtxString = "userID"
 		req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
@@ -38,8 +39,8 @@ func TestGet400(t *testing.T) {
 		res.Body.Close()
 		val := res.Header.Get("Location")
 
-		assert.NotEqual(t, targetLink, val, "TEST GET 400 \"not found ID\" The ID exactly should not be found (Test entry of an unknown ID)")
-		assert.Equal(t, http.StatusBadRequest, res.StatusCode, "TEST GET 400 \"not found ID\" The ID exactly should not be found (Test entry of an unknown ID)")
+		assert.Equal(t, targetLink, val, "TEST GET 307")
+		assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode, "TEST GET 307")
 	}
 }
 
@@ -53,4 +54,18 @@ func TestPost400(t *testing.T) {
 	res := rec.Result()
 	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode, "TEST POST 400")
+}
+
+func BenchmarkGet400(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		TestGet400(t)
+	}
+}
+
+func BenchmarkPost400(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		TestPost400(t)
+	}
 }

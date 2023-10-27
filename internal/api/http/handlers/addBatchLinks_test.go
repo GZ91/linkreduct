@@ -50,3 +50,10 @@ func Test_handlers_AddBatchLinks(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, res.StatusCode, "TEST GET ping DB")
 
 }
+
+func BenchmarkAddBatchLinks(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		Test_handlers_AddBatchLinks(t)
+	}
+}

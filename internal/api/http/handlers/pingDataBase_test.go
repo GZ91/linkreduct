@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,17 +10,15 @@ import (
 )
 
 func Test_handlers_PingDataBase(t *testing.T) {
-
-	SetupForTesting(t)
-
+	mockStorager := SetupForTesting(t)
 	{
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+		mockStorager.On("Ping", mock_test.Anything).Return(nil)
 		handls.PingDataBase(rec, req)
 
 		res := rec.Result()
 		res.Body.Close()
 		assert.Equal(t, http.StatusOK, res.StatusCode, "TEST GET ping DB")
 	}
-
 }

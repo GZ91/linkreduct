@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +13,9 @@ import (
 )
 
 func Test_handlers_GetURLsUser(t *testing.T) {
-	SetupForTesting(t)
+	mockStorager := SetupForTesting(t)
+	mockStorager.On("GetLinksUser", mock_test.Anything, "userID").Return(nil, nil)
+
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
 
@@ -26,10 +30,9 @@ func Test_handlers_GetURLsUser(t *testing.T) {
 }
 
 func Test_handlers_GetURLsUser2(t *testing.T) {
-	SetupForTesting(t)
+	mockStorager := SetupForTesting(t)
 
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(`[
+	textBody := `[
     {
         "correlation_id": "1",
         "original_url": "https://www.deepl.com"
@@ -42,7 +45,17 @@ func Test_handlers_GetURLsUser2(t *testing.T) {
         "correlation_id": "3",
         "original_url": "https://www.google.com"
     }
-] `))
+] `
+	var data []models.IncomingBatchURL
+	json.Unmarshal([]byte(textBody), &data)
+	var returnData []models.ReleasedBatchURL
+	returnData = append(returnData, models.ReleasedBatchURL{"1", "sdgsg"})
+	returnData = append(returnData, models.ReleasedBatchURL{"2", "sdfg"})
+	returnData = append(returnData, models.ReleasedBatchURL{"3", "sgrgrw"})
+
+	mockStorager.On("AddBatchLink", mock_test.Anything, data).Return(returnData, nil)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(textBody))
 	var userIDCTX models.CtxString = "userID"
 	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
 
@@ -56,6 +69,13 @@ func Test_handlers_GetURLsUser2(t *testing.T) {
 	req = httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
 
 	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
+
+	var returnedData []models.ReturnedStructURL
+	returnedData = append(returnedData, models.ReturnedStructURL{"sdgsg", "https://www.deepl.com"})
+	returnedData = append(returnedData, models.ReturnedStructURL{"sdfg", "https://www.mail.ru"})
+	returnedData = append(returnedData, models.ReturnedStructURL{"sgrgrw", "https://www.google.com"})
+
+	mockStorager.On("GetLinksUser", mock_test.Anything, "userID").Return(returnedData, nil)
 
 	handls.GetURLsUser(rec, req)
 

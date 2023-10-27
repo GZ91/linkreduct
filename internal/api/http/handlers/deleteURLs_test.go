@@ -26,3 +26,10 @@ func Test_handlers_DeleteURLs(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, res.StatusCode, "TEST GET ping DB")
 
 }
+
+func BenchmarkDeleteURLs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		t := &testing.T{}
+		Test_handlers_DeleteURLs(t)
+	}
+}

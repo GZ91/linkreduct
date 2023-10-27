@@ -16,7 +16,7 @@ func SetupForTesting(t *testing.T) *mocks.Storeger {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "info.txt")
 
 	NodeStorage := mocks.NewStoreger(t)
-	NodeStorage.On("InitializingRemovalChannel", mock_test.Anything, mock_test.Anything).Return(nil)
+	NodeStorage.On("InitializingRemovalChannel", mock_test.Anything, mock_test.Anything).Return(nil).Maybe()
 	NodeService := service.New(context.Background(), NodeStorage, conf, make(chan []models.StructDelURLs))
 	handls = New(NodeService)
 	return NodeStorage
