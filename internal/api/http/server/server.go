@@ -40,7 +40,11 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	} else if conf.GetNameFileStorage() != "" {
 		NodeStorage = infile.New(ctx, conf, GeneratorRunes)
 	} else {
-		NodeStorage = inmemory.New(ctx, conf, GeneratorRunes)
+		var err error
+		NodeStorage, err = inmemory.New(ctx, conf, GeneratorRunes)
+		if err != nil {
+			return err
+		}
 	}
 
 	NodeService := service.New(ctx, NodeStorage, conf, make(chan []models.StructDelURLs))

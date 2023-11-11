@@ -19,8 +19,8 @@ type GeneratorRunes interface {
 	RandStringRunes(int) string
 }
 
-func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}
+func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) (*db, error) {
+	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}, nil
 }
 
 type db struct {
