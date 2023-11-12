@@ -2,6 +2,11 @@ package main
 
 import (
 	"context"
+	"net/http"
+	_ "net/http/pprof"
+	"strconv"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/initializing"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -9,10 +14,6 @@ import (
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/inmemory"
 	"github.com/google/uuid"
-	"net/http"
-	_ "net/http/pprof" // подключаем пакет pprof
-	"strconv"
-	"time"
 )
 
 func main() {
@@ -34,7 +35,11 @@ func testingFunction(conf *config.Config) {
 	if err != nil {
 		panic(err)
 	}
-	serviceNode := service.New(ctx, dbNode, conf, make(chan []models.StructDelURLs))
+	serviceNode := service.New(ctx,
+		service.AddDb(dbNode),
+		service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
+		service.AddConf(conf))
+
 	var batchLink []models.IncomingBatchURL
 	for i := 1; i <= 1000; i++ {
 		link := "http://www." + uuid.New().String() + ".com"

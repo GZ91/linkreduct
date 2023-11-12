@@ -2,15 +2,18 @@ package server
 
 import (
 	"context"
+	compressmiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
+	sizemiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/size"
+	"github.com/GZ91/linkreduct/internal/models"
+	"net/http"
+	"sync"
+
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	authenticationmiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/authentication"
-	"github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	"github.com/GZ91/linkreduct/internal/api/http/middleware/logger"
-	"github.com/GZ91/linkreduct/internal/api/http/middleware/size"
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/app/signalreception"
-	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/infile"
@@ -19,8 +22,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"net/http"
-	"sync"
 )
 
 type NodeStorager interface {
@@ -47,7 +48,11 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 		}
 	}
 
-	NodeService := service.New(ctx, NodeStorage, conf, make(chan []models.StructDelURLs))
+	NodeService := service.New(ctx,
+		service.AddDb(NodeStorage),
+		service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
+		service.AddConf(conf))
+
 	handls := handlers.New(NodeService)
 
 	router := chi.NewRouter()

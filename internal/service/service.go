@@ -36,21 +36,38 @@ type NodeService struct {
 	ChsURLForDel chan []models.StructDelURLs
 }
 
-func New(ctx context.Context, db Storeger, conf ConfigerService, ChsURLForDel chan []models.StructDelURLs) *NodeService {
+func New(ctx context.Context, opts ...func(service *NodeService)) *NodeService {
 	Node := &NodeService{
-		db:           db,
-		conf:         conf,
-		URLFormat:    regexp.MustCompile(`^(?:https?:\/\/)`),
-		URLFilter:    regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`),
-		ChsURLForDel: ChsURLForDel,
+		URLFormat: regexp.MustCompile(`^(?:https?:\/\/)`),
+		URLFilter: regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`),
 	}
-
-	err := Node.db.InitializingRemovalChannel(ctx, Node.ChsURLForDel)
-	if err != nil {
-		logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
-		return nil
+	for _, opt := range opts {
+		opt(Node)
 	}
 	return Node
+}
+
+func AddDb(db Storeger) func(service *NodeService) {
+	return func(n *NodeService) {
+		n.db = db
+	}
+}
+
+func AddConf(conf ConfigerService) func(service *NodeService) {
+	return func(n *NodeService) {
+		n.conf = conf
+	}
+}
+
+func AddChsURLForDel(ctx context.Context, ChsURLForDel chan []models.StructDelURLs) func(service *NodeService) {
+	return func(n *NodeService) {
+		n.ChsURLForDel = ChsURLForDel
+		err := n.db.InitializingRemovalChannel(ctx, n.ChsURLForDel)
+		if err != nil {
+			logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
+		}
+	}
+
 }
 
 func (r *NodeService) getFormatLongLink(longLink string) (string, error) {

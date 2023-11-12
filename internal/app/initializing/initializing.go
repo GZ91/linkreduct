@@ -1,12 +1,13 @@
 package initializing
 
 import (
+	"strings"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/initializing/envs"
 	"github.com/GZ91/linkreduct/internal/app/initializing/flags"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"go.uber.org/zap"
-	"strings"
 )
 
 func Configuration() *config.Config {

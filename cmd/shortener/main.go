@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/GZ91/linkreduct/internal/app"
 	"github.com/GZ91/linkreduct/internal/app/initializing"
 )

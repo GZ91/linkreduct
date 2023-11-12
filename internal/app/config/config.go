@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/GZ91/linkreduct/internal/storage/postgresql/postgresqlconfig"
 	"sync"
+
+	"github.com/GZ91/linkreduct/internal/storage/postgresql/postgresqlconfig"
 )
 
 type Config struct {
