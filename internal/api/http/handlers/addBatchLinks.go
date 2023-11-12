@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func (h *handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) AddBatchLinks(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
 	textBody, err := io.ReadAll(r.Body)
 	if err != nil {

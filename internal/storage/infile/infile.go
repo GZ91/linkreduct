@@ -25,18 +25,18 @@ type ConfigerStorage interface {
 	GetStartLenShortLink() int
 }
 
-func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
-	DB := &db{
+func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *DB {
+	db := &DB{
 		generatorRunes: gen,
 		conf:           conf,
 		data:           make(map[string]*models.StructURL),
 		chURLsForDel:   make(chan models.StructDelURLs),
 	}
-	DB.open()
-	return DB
+	db.open()
+	return db
 }
 
-type db struct {
+type DB struct {
 	generatorRunes GeneratorRunes
 	conf           ConfigerStorage
 	mutex          sync.Mutex
@@ -46,7 +46,7 @@ type db struct {
 	chURLsForDel   chan models.StructDelURLs
 }
 
-func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
+func (r *DB) GetURL(ctx context.Context, key string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	datainModel, ok := r.data[key]
@@ -60,7 +60,7 @@ func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
 	return retval, ok, nil
 }
 
-func (r *db) AddURL(ctx context.Context, url string) (string, error) {
+func (r *DB) AddURL(ctx context.Context, url string) (string, error) {
 	shortURL, err := r.getShortURL(ctx)
 	if err != nil {
 		return "", err
@@ -84,7 +84,7 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	return shortURL, nil
 }
 
-func (r *db) save() (errs error) {
+func (r *DB) save() (errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	nameFile := r.conf.GetNameFileStorage()
@@ -135,7 +135,7 @@ func (r *db) save() (errs error) {
 	return
 }
 
-func (r *db) open() (errs error) {
+func (r *DB) open() (errs error) {
 	nameFile := r.conf.GetNameFileStorage()
 	if nameFile == "" {
 		return nil
@@ -161,11 +161,11 @@ func (r *db) open() (errs error) {
 	return
 }
 
-func (r *db) Close() error {
+func (r *DB) Close() error {
 	return r.save()
 }
 
-func (r *db) getShortURL(ctx context.Context) (string, error) {
+func (r *DB) getShortURL(ctx context.Context) (string, error) {
 	lenID := r.conf.GetStartLenShortLink()
 	iterLen := 0
 	MaxIterLen := r.conf.GetMaxIterLen()
@@ -186,11 +186,11 @@ func (r *db) getShortURL(ctx context.Context) (string, error) {
 	}
 }
 
-func (r *db) Ping(ctx context.Context) error {
+func (r *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
+func (r *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
@@ -201,7 +201,7 @@ func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	return "", false, nil
 }
 
-func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+func (r *DB) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	for _, data := range batchLink {
 		link := data.OriginalURL
 		var shortURL string
@@ -224,7 +224,7 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 	return
 }
 
-func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+func (r *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	returnData := make([]models.ReturnedStructURL, 0)
 	for _, val := range r.data {
 		if val.UserID == userID {
@@ -234,14 +234,14 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
 	go r.GroupingDataForDeleted()
 	go r.FillBufferDelete()
 	return nil
 }
 
-func (r *db) GroupingDataForDeleted() {
+func (r *DB) GroupingDataForDeleted() {
 	for sliceVal := range r.chsURLsForDel {
 		sliceVal := sliceVal
 		go func() {
@@ -252,7 +252,7 @@ func (r *db) GroupingDataForDeleted() {
 	}
 }
 
-func (r *db) FillBufferDelete() {
+func (r *DB) FillBufferDelete() {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
@@ -268,7 +268,7 @@ func (r *db) FillBufferDelete() {
 	}
 }
 
-func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+func (r *DB) deletedURLs(listForDel []models.StructDelURLs) {
 	for _, val := range listForDel {
 		for index := range r.data {
 			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {

@@ -29,8 +29,17 @@ type NodeStorager interface {
 	Close() error
 }
 
+var (
+	_ NodeStorager               = (*postgresql.DB)(nil)
+	_ NodeStorager               = (*infile.DB)(nil)
+	_ NodeStorager               = (*inmemory.DB)(nil)
+	_ handlers.HandlerserService = (*service.NodeService)(nil)
+)
+
 func Start(ctx context.Context, conf *config.Config) (er error) {
+
 	var NodeStorage NodeStorager
+
 	GeneratorRunes := genrunes.New()
 	if !conf.GetConfDB().Empty() {
 		var err error
@@ -55,23 +64,9 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 
 	handls := handlers.New(NodeService)
 
-	router := chi.NewRouter()
-	router.Use(authenticationmiddleware.Authentication)
-	router.Use(sizemiddleware.CalculateSize)
-	router.Use(loggermiddleware.WithLogging)
-	router.Use(compressmiddleware.Compress)
-
-	router.Get("/ping", handls.PingDataBase)
-	router.Get("/{id}", handls.GetLongURL)
-	router.Get("/api/user/urls", handls.GetURLsUser)
-	router.Post("/", handls.AddLongLink)
-	router.Post("/api/shorten/batch", handls.AddBatchLinks)
-	router.Post("/api/shorten", handls.AddLongLinkJSON)
-	router.Delete("/api/user/urls", handls.DeleteURLs)
-
 	Server := http.Server{}
 	Server.Addr = conf.GetAddressServer()
-	Server.Handler = router
+	Server.Handler = routing(handls)
 
 	wg := sync.WaitGroup{}
 
@@ -89,4 +84,21 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	wg.Wait()
 	return
 
+}
+
+func routing(handls *handlers.Handlers) *chi.Mux {
+	router := chi.NewRouter()
+	router.Use(authenticationmiddleware.Authentication)
+	router.Use(sizemiddleware.CalculateSize)
+	router.Use(loggermiddleware.WithLogging)
+	router.Use(compressmiddleware.Compress)
+
+	router.Get("/ping", handls.PingDataBase)
+	router.Get("/{id}", handls.GetLongURL)
+	router.Get("/api/user/urls", handls.GetURLsUser)
+	router.Post("/", handls.AddLongLink)
+	router.Post("/api/shorten/batch", handls.AddBatchLinks)
+	router.Post("/api/shorten", handls.AddLongLinkJSON)
+	router.Delete("/api/user/urls", handls.DeleteURLs)
+	return router
 }

@@ -60,7 +60,7 @@ func Test_db_GetURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &db{
+			r := &DB{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
 				data:           tt.fields.data,
@@ -141,7 +141,7 @@ func Test_db_save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &db{
+			r := &DB{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
 				data:           tt.fields.data,

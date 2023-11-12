@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-type handlerserService interface {
+type HandlerserService interface {
 	GetSmallLink(context.Context, string) (string, error)
 	GetURL(context.Context, string) (string, bool, error)
 	GetURLsUser(context.Context, string) ([]models.ReturnedStructURL, error)
@@ -15,11 +15,11 @@ type handlerserService interface {
 	DeletedLinks([]string, string)
 }
 
-type handlers struct {
-	nodeService handlerserService
+type Handlers struct {
+	nodeService HandlerserService
 	URLFilter   *regexp.Regexp
 }
 
-func New(nodeService handlerserService) *handlers {
-	return &handlers{nodeService: nodeService, URLFilter: regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)}
+func New(nodeService HandlerserService) *Handlers {
+	return &Handlers{nodeService: nodeService, URLFilter: regexp.MustCompile(`^(?:https?:\/\/)?(?:[^@\/\n]+@)?(?:www\.)?(\w+\.[^:\/\n]+)`)}
 }

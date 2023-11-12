@@ -19,11 +19,11 @@ type GeneratorRunes interface {
 	RandStringRunes(int) string
 }
 
-func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) (*db, error) {
-	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}, nil
+func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) (*DB, error) {
+	return &DB{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}, nil
 }
 
-type db struct {
+type DB struct {
 	data          map[string]*models.StructURL
 	config        ConfigerStorage
 	genrun        GeneratorRunes
@@ -32,7 +32,7 @@ type db struct {
 	chURLsForDel  chan models.StructDelURLs
 }
 
-func (r *db) setDB(ctx context.Context, key, value string) bool {
+func (r *DB) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	var UserID string
@@ -51,7 +51,7 @@ func (r *db) setDB(ctx context.Context, key, value string) bool {
 	return true
 }
 
-func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
+func (r *DB) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	valueStruct, found := r.data[key]
@@ -65,7 +65,7 @@ func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs 
 	return
 }
 
-func (r *db) AddURL(ctx context.Context, url string) (string, error) {
+func (r *DB) AddURL(ctx context.Context, url string) (string, error) {
 
 	lenID := 5
 	iterLen := 0
@@ -88,15 +88,15 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	}
 }
 
-func (r *db) Close() error {
+func (r *DB) Close() error {
 	return nil
 }
 
-func (r *db) Ping(ctx context.Context) error {
+func (r *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
+func (r *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
@@ -107,7 +107,7 @@ func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	return "", false, nil
 }
 
-func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+func (r *DB) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	for _, data := range batchLink {
 		link := data.OriginalURL
 		var shortURL string
@@ -131,7 +131,7 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 	return
 }
 
-func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+func (r *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	returnData := make([]models.ReturnedStructURL, 0)
 	for _, val := range r.data {
 		if val.UserID == userID {
@@ -141,14 +141,14 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
 	go r.GroupingDataForDeleted()
 	go r.FillBufferDelete()
 	return nil
 }
 
-func (r *db) GroupingDataForDeleted() {
+func (r *DB) GroupingDataForDeleted() {
 	for sliceVal := range r.chsURLsForDel {
 		sliceVal := sliceVal
 		go func() {
@@ -159,7 +159,7 @@ func (r *db) GroupingDataForDeleted() {
 	}
 }
 
-func (r *db) FillBufferDelete() {
+func (r *DB) FillBufferDelete() {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
@@ -175,7 +175,7 @@ func (r *db) FillBufferDelete() {
 	}
 }
 
-func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+func (r *DB) deletedURLs(listForDel []models.StructDelURLs) {
 	for _, val := range listForDel {
 		for index := range r.data {
 			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {

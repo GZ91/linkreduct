@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func (h *handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {
 	var listURLs []string
 
 	bodyByte, err := io.ReadAll(r.Body)

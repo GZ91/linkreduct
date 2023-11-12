@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (h *handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {
 	var UserID string
 	var userIDCTX models.CtxString = "userID"
 	UserIDVal := r.Context().Value(userIDCTX)

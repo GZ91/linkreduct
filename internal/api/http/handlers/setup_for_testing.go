@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-var handls *handlers
+var handls *Handlers
 
 func SetupForTesting(t *testing.T) *mocks.Storeger {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "info.txt")

@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-func (h *handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) AddLongLink(w http.ResponseWriter, r *http.Request) {
 	StatusReturn := http.StatusCreated
 
 	link, err := io.ReadAll(r.Body)
