@@ -143,27 +143,38 @@ func (r *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 
 func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
-	go r.GroupingDataForDeleted()
-	go r.FillBufferDelete()
+	go r.GroupingDataForDeleted(ctx)
+	go r.FillBufferDelete(ctx)
 	return nil
 }
 
-func (r *DB) GroupingDataForDeleted() {
-	for sliceVal := range r.chsURLsForDel {
-		sliceVal := sliceVal
-		go func() {
-			for _, val := range sliceVal {
-				r.chURLsForDel <- val
-			}
-		}()
+func (d *DB) GroupingDataForDeleted(ctx context.Context) {
+	var wg sync.WaitGroup
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			close(d.chURLsForDel)
+			return
+		case sliceVal := <-d.chsURLsForDel:
+			wg.Add(1)
+			go func(*sync.WaitGroup) {
+				for _, val := range sliceVal {
+					d.chURLsForDel <- val
+				}
+				wg.Done()
+			}(&wg)
+		}
 	}
 }
 
-func (r *DB) FillBufferDelete() {
+func (r *DB) FillBufferDelete(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case val := <-r.chURLsForDel:
 			listForDel = append(listForDel, val)
 		case <-t.C:

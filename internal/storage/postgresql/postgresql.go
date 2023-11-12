@@ -309,7 +309,6 @@ func (d *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []mode
 }
 
 func (d *DB) GroupingDataForDeleted(ctx context.Context) {
-
 	var wg sync.WaitGroup
 	for {
 		select {
@@ -317,8 +316,7 @@ func (d *DB) GroupingDataForDeleted(ctx context.Context) {
 			wg.Wait()
 			close(d.chURLsForDel)
 			return
-		default:
-			sliceVal := <-d.chsURLsForDel
+		case sliceVal := <-d.chsURLsForDel:
 			wg.Add(1)
 			go func(*sync.WaitGroup) {
 				for _, val := range sliceVal {
@@ -335,6 +333,8 @@ func (d *DB) FillBufferDelete(ctx context.Context) {
 	var listForDel []models.StructDelURLs
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case val := <-d.chURLsForDel:
 			listForDel = append(listForDel, val)
 		case <-t.C:

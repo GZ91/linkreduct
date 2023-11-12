@@ -1,6 +1,7 @@
 package signalreception
 
 import (
+	"context"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"go.uber.org/zap"
 	"os"
@@ -27,7 +28,7 @@ type Closer interface {
 	GetName() string
 }
 
-func OnClose(players []Closer, wg *sync.WaitGroup) {
+func OnClose(cancel context.CancelFunc, players []Closer, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 
@@ -36,6 +37,7 @@ func OnClose(players []Closer, wg *sync.WaitGroup) {
 	for sig := range c {
 		switch sig {
 		case syscall.SIGINT:
+			cancel()
 			for _, player := range players {
 				if err := player.Close(); err != nil {
 					logger.Log.Error(player.GetName()+" close error", zap.String("error", err.Error()))

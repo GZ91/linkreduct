@@ -37,40 +37,23 @@ var (
 )
 
 func Start(ctx context.Context, conf *config.Config) (er error) {
-
-	var NodeStorage NodeStorager
-
-	GeneratorRunes := genrunes.New()
-	if !conf.GetConfDB().Empty() {
-		var err error
-		NodeStorage, err = postgresql.New(ctx, conf, GeneratorRunes)
-		if err != nil {
-			return err
-		}
-	} else if conf.GetNameFileStorage() != "" {
-		NodeStorage = infile.New(ctx, conf, GeneratorRunes)
-	} else {
-		var err error
-		NodeStorage, err = inmemory.New(ctx, conf, GeneratorRunes)
-		if err != nil {
-			return err
-		}
+	ctx, cancel := context.WithCancel(ctx)
+	NodeStorage, err := getNodeStorage(ctx, conf)
+	if err != nil {
+		return err
 	}
-
 	NodeService := service.New(ctx,
 		service.AddDb(NodeStorage),
 		service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
 		service.AddConf(conf))
 
-	handls := handlers.New(NodeService)
-
 	Server := http.Server{}
 	Server.Addr = conf.GetAddressServer()
-	Server.Handler = routing(handls)
+	Server.Handler = routing(handlers.New(NodeService))
 
 	wg := sync.WaitGroup{}
 
-	go signalreception.OnClose([]signalreception.Closer{
+	go signalreception.OnClose(cancel, []signalreception.Closer{
 		&signalreception.Stopper{CloserInterf: &Server, Name: "server"},
 		&signalreception.Stopper{CloserInterf: NodeStorage, Name: "node storage"},
 		&signalreception.Stopper{CloserInterf: NodeService, Name: "node service"}},
@@ -84,6 +67,17 @@ func Start(ctx context.Context, conf *config.Config) (er error) {
 	wg.Wait()
 	return
 
+}
+
+func getNodeStorage(ctx context.Context, conf *config.Config) (NodeStorager, error) {
+	GeneratorRunes := genrunes.New()
+	if !conf.GetConfDB().Empty() {
+		return postgresql.New(ctx, conf, GeneratorRunes)
+	} else if conf.GetNameFileStorage() != "" {
+		return infile.New(ctx, conf, GeneratorRunes)
+	} else {
+		return inmemory.New(ctx, conf, GeneratorRunes)
+	}
 }
 
 func routing(handls *handlers.Handlers) *chi.Mux {
