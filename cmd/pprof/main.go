@@ -22,7 +22,7 @@ func main() {
 			panic(err)
 		}
 		serviceNode := service.New(ctx,
-			service.AddDb(dbNode),
+			service.AddDB(dbNode),
 			service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
 			service.AddConf(conf))
 		for {

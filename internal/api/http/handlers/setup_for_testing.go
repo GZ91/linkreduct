@@ -18,7 +18,7 @@ func SetupForTesting(t *testing.T) *mocks.Storeger {
 	NodeStorage := mocks.NewStoreger(t)
 	NodeStorage.On("InitializingRemovalChannel", mock_test.Anything, mock_test.Anything).Return(nil).Maybe()
 	NodeService := service.New(ctx,
-		service.AddDb(NodeStorage),
+		service.AddDB(NodeStorage),
 		service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
 		service.AddConf(conf))
 	handls = New(NodeService)

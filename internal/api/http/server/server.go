@@ -38,12 +38,14 @@ var (
 
 func Start(ctx context.Context, conf *config.Config) (er error) {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	NodeStorage, err := getNodeStorage(ctx, conf)
 	if err != nil {
 		return err
 	}
 	NodeService := service.New(ctx,
-		service.AddDb(NodeStorage),
+		service.AddDB(NodeStorage),
 		service.AddChsURLForDel(ctx, make(chan []models.StructDelURLs)),
 		service.AddConf(conf))
 

@@ -47,7 +47,7 @@ func New(ctx context.Context, opts ...func(service *NodeService)) *NodeService {
 	return Node
 }
 
-func AddDb(db Storeger) func(service *NodeService) {
+func AddDB(db Storeger) func(service *NodeService) {
 	return func(n *NodeService) {
 		n.db = db
 	}
