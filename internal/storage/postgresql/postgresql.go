@@ -38,6 +38,7 @@ func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRu
 	db := &DB{conf: config, generatorRunes: generatorRunes}
 	ConfDB := db.conf.GetConfDB()
 	db.ps = ConfDB.StringServer
+
 	err := db.openDB()
 	if err != nil {
 		return nil, err
@@ -277,6 +278,16 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 		return nil, err
 	}
 	defer con.Close()
+
+	row := con.QueryRowContext(ctx, `SELECT COUNT(id) FROM short_origin_reference WHERE userID = $1`, userID)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, nil
+	}
 
 	rows, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
 	FROM short_origin_reference WHERE userID = $1`, userID)
