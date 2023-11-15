@@ -241,19 +241,19 @@ func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []mode
 	return nil
 }
 
-func (d *DB) GroupingDataForDeleted(ctx context.Context) {
+func (r *DB) GroupingDataForDeleted(ctx context.Context) {
 	var wg sync.WaitGroup
 	for {
 		select {
 		case <-ctx.Done():
 			wg.Wait()
-			close(d.chURLsForDel)
+			close(r.chURLsForDel)
 			return
-		case sliceVal := <-d.chsURLsForDel:
+		case sliceVal := <-r.chsURLsForDel:
 			wg.Add(1)
 			go func(*sync.WaitGroup) {
 				for _, val := range sliceVal {
-					d.chURLsForDel <- val
+					r.chURLsForDel <- val
 				}
 				wg.Done()
 			}(&wg)
