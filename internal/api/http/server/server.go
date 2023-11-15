@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
+	"net/http"
+	"sync"
+
 	compressmiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/compress"
 	sizemiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/size"
 	"github.com/GZ91/linkreduct/internal/models"
-	"net/http"
-	"sync"
 
 	"github.com/GZ91/linkreduct/internal/api/http/handlers"
 	authenticationmiddleware "github.com/GZ91/linkreduct/internal/api/http/middleware/authentication"

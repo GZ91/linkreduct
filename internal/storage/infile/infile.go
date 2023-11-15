@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type GeneratorRunes interface {

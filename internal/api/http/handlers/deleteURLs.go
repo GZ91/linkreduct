@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
+	"net/http"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
 )
 
 func (h *Handlers) DeleteURLs(w http.ResponseWriter, r *http.Request) {

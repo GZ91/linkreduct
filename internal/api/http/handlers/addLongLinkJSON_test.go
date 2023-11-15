@@ -3,14 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
-	mock_test "github.com/stretchr/testify/mock"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 )
 
 func Test_handlers_AddLongLinkJSON(t *testing.T) {

@@ -2,10 +2,11 @@ package inmemory
 
 import (
 	"context"
+	"testing"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestStorageURL(t *testing.T) {

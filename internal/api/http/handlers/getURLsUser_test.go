@@ -3,13 +3,14 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"github.com/GZ91/linkreduct/internal/models"
-	"github.com/stretchr/testify/assert"
-	mock_test "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 )
 
 func Test_handlers_GetURLsUser(t *testing.T) {

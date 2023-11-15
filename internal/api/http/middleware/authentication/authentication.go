@@ -3,12 +3,13 @@ package authenticationmiddleware
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 const SecretKey = "Secret_Key"

@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"github.com/stretchr/testify/assert"
-	mock_test "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	mock_test "github.com/stretchr/testify/mock"
 )
 
 func Test_handlers_PingDataBase(t *testing.T) {

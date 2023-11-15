@@ -2,11 +2,12 @@ package compressmiddleware
 
 import (
 	"compress/gzip"
-	"github.com/GZ91/linkreduct/internal/app/logger"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/GZ91/linkreduct/internal/app/logger"
+	"go.uber.org/zap"
 )
 
 type Compression struct {

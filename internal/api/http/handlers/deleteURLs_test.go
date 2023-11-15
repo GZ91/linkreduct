@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"context"
-	"github.com/GZ91/linkreduct/internal/models"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/GZ91/linkreduct/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_handlers_DeleteURLs(t *testing.T) {

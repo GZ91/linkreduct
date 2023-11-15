@@ -2,13 +2,14 @@ package inmemory
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 type ConfigerStorage interface {

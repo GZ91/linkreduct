@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"context"
+	"testing"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/mocks"
 	mock_test "github.com/stretchr/testify/mock"
-	"testing"
 )
 
 var handls *Handlers

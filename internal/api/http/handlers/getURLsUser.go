@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 func (h *Handlers) GetURLsUser(w http.ResponseWriter, r *http.Request) {

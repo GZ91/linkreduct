@@ -2,12 +2,13 @@ package signalreception
 
 import (
 	"context"
-	"github.com/GZ91/linkreduct/internal/app/logger"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/GZ91/linkreduct/internal/app/logger"
+	"go.uber.org/zap"
 )
 
 type CloserInterf interface {

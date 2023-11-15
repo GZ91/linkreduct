@@ -1,10 +1,11 @@
 package loggermiddleware
 
 import (
-	"github.com/GZ91/linkreduct/internal/app/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/GZ91/linkreduct/internal/app/logger"
+	"go.uber.org/zap"
 )
 
 type (

@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"context"
-	"github.com/GZ91/linkreduct/internal/models"
 	"regexp"
+
+	"github.com/GZ91/linkreduct/internal/models"
 )
 
 type HandlerserService interface {

@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/GZ91/linkreduct/internal/app/initializing"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/GZ91/linkreduct/internal/storage/postgresql"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 func main() {

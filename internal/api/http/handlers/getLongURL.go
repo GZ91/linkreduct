@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/go-chi/chi/v5"
-	"net/http"
 )
 
 func (h *Handlers) GetLongURL(w http.ResponseWriter, r *http.Request) {

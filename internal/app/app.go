@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+
 	"github.com/GZ91/linkreduct/internal/api/http/server"
 	"github.com/GZ91/linkreduct/internal/app/config"
 )

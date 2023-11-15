@@ -2,14 +2,15 @@ package infile
 
 import (
 	"context"
+	"os"
+	"reflect"
+	"testing"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"reflect"
-	"testing"
 )
 
 func Test_db_GetURL(t *testing.T) {
