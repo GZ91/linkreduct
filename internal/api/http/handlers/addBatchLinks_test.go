@@ -33,14 +33,14 @@ func Test_handlers_AddBatchLinks(t *testing.T) {
 	req = req.WithContext(context.WithValue(req.Context(), userIDCTX, "userID"))
 
 	var batch []models.IncomingBatchURL
-	batch = append(batch, models.IncomingBatchURL{"1", "https://www.deepl.com"})
-	batch = append(batch, models.IncomingBatchURL{"2", "https://www.mail.ru"})
-	batch = append(batch, models.IncomingBatchURL{"3", "https://www.google.com"})
+	batch = append(batch, models.IncomingBatchURL{CorrelationID: "1", OriginalURL: "https://www.deepl.com"})
+	batch = append(batch, models.IncomingBatchURL{CorrelationID: "2", OriginalURL: "https://www.mail.ru"})
+	batch = append(batch, models.IncomingBatchURL{CorrelationID: "3", OriginalURL: "https://www.google.com"})
 
 	var retBatch []models.ReleasedBatchURL
-	retBatch = append(retBatch, models.ReleasedBatchURL{"1", "uygh"})
-	retBatch = append(retBatch, models.ReleasedBatchURL{"2", "uasdygh"})
-	retBatch = append(retBatch, models.ReleasedBatchURL{"3", "usdfger4h"})
+	retBatch = append(retBatch, models.ReleasedBatchURL{CorrelationID: "1", ShortURL: "uygh"})
+	retBatch = append(retBatch, models.ReleasedBatchURL{CorrelationID: "2", ShortURL: "uasdygh"})
+	retBatch = append(retBatch, models.ReleasedBatchURL{CorrelationID: "3", ShortURL: "usdfger4h"})
 
 	mockStorager.On("AddBatchLink", mock_test.Anything, batch).Return(retBatch, nil)
 	handls.AddBatchLinks(rec, req)
