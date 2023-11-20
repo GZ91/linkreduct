@@ -11,6 +11,8 @@ import (
 
 // Storeger
 //
+// Storeger - интерфейс, предоставляющий методы для взаимодействия с хранилищем данных.
+//
 //go:generate mockery --name Storeger --with-expecter
 type Storeger interface {
 	AddURL(context.Context, string) (string, error)
@@ -22,13 +24,14 @@ type Storeger interface {
 	InitializingRemovalChannel(context.Context, chan []models.StructDelURLs) error
 }
 
-// Storeger
+// ConfigerService - интерфейс для получения конфигурационных данных.
 //
 //go:generate mockery --name ConfigerService --with-expecter
 type ConfigerService interface {
 	GetAddressServerURL() string
 }
 
+// NodeService - структура, представляющая сервис для обработки URL.
 type NodeService struct {
 	db           Storeger
 	conf         ConfigerService
@@ -37,6 +40,7 @@ type NodeService struct {
 	ChsURLForDel chan []models.StructDelURLs
 }
 
+// New создает и возвращает новый экземпляр NodeService с опциями.
 func New(ctx context.Context, opts ...func(service *NodeService)) *NodeService {
 	Node := &NodeService{
 		URLFormat: regexp.MustCompile(`^(?:https?:\/\/)`),
@@ -48,18 +52,21 @@ func New(ctx context.Context, opts ...func(service *NodeService)) *NodeService {
 	return Node
 }
 
+// AddDB добавляет хранилище данных (Storeger) к NodeService.
 func AddDB(db Storeger) func(service *NodeService) {
 	return func(n *NodeService) {
 		n.db = db
 	}
 }
 
+// AddConf добавляет конфигурацию (ConfigerService) к NodeService.
 func AddConf(conf ConfigerService) func(service *NodeService) {
 	return func(n *NodeService) {
 		n.conf = conf
 	}
 }
 
+// AddChsURLForDel добавляет канал для удаления URL к NodeService.
 func AddChsURLForDel(ctx context.Context, ChsURLForDel chan []models.StructDelURLs) func(service *NodeService) {
 	return func(n *NodeService) {
 		n.ChsURLForDel = ChsURLForDel
@@ -68,9 +75,9 @@ func AddChsURLForDel(ctx context.Context, ChsURLForDel chan []models.StructDelUR
 			logger.Log.Error("error when initializing the delete link channel", zap.Error(err))
 		}
 	}
-
 }
 
+// getFormatLongLink форматирует длинный URL, добавляя префикс "http://", если его нет.
 func (r *NodeService) getFormatLongLink(longLink string) (string, error) {
 	if !r.URLFormat.MatchString(longLink) {
 		longLink = "http://" + longLink
@@ -78,10 +85,12 @@ func (r *NodeService) getFormatLongLink(longLink string) (string, error) {
 	return longLink, nil
 }
 
+// Ping выполняет проверку доступности хранилища данных.
 func (r *NodeService) Ping(ctx context.Context) error {
 	return r.db.Ping(ctx)
 }
 
+// Close закрывает канал для удаления URL.
 func (r *NodeService) Close() error {
 	close(r.ChsURLForDel)
 	return nil
