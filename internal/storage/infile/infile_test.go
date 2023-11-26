@@ -2,14 +2,15 @@ package infile
 
 import (
 	"context"
+	"os"
+	"reflect"
+	"testing"
+
 	"github.com/GZ91/linkreduct/internal/app/config"
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/GZ91/linkreduct/internal/service/genrunes"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"reflect"
-	"testing"
 )
 
 func Test_db_GetURL(t *testing.T) {
@@ -60,7 +61,7 @@ func Test_db_GetURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &db{
+			r := &DB{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
 				data:           tt.fields.data,
@@ -141,7 +142,7 @@ func Test_db_save(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &db{
+			r := &DB{
 				generatorRunes: tt.fields.generatorRunes,
 				conf:           tt.fields.conf,
 				data:           tt.fields.data,
@@ -168,7 +169,10 @@ func Test_db_save(t *testing.T) {
 func Test_db_AddURL(t *testing.T) {
 	conf := config.New(true, "localhost:8080", "http://localhost:8080/", 5, 5, "")
 	genrun := genrunes.New()
-	db := New(context.Background(), conf, genrun)
+	db, err := New(context.Background(), conf, genrun)
+	if !assert.NoError(t, err) {
+		t.Fatalf("error create db")
+	}
 
 	tests := []struct {
 		name string

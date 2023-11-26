@@ -5,11 +5,13 @@ import (
 	"time"
 )
 
+// Genrun представляет генератор случайных строк на основе заданных символов.
 type Genrun struct {
 	letterRunes []rune
 	rander      *rand.Rand
 }
 
+// New создает и возвращает новый экземпляр Genrun.
 func New() *Genrun {
 	return &Genrun{
 		letterRunes: []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"),
@@ -17,6 +19,7 @@ func New() *Genrun {
 	}
 }
 
+// RandStringRunes генерирует случайную строку длины l из символов, заданных в letterRunes.
 func (g Genrun) RandStringRunes(l int) string {
 	b := make([]rune, l)
 	for i := range b {

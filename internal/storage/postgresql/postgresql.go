@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
@@ -11,20 +14,21 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
+// ConfigerStorage определяет интерфейс для получения конфигураций, связанных с хранилищем данных.
 type ConfigerStorage interface {
-	GetMaxIterLen() int
-	GetConfDB() *postgresqlconfig.ConfigDB
-	GetStartLenShortLink() int
+	GetMaxIterLen() int                    // GetMaxIterLen возвращает максимальное количество итераций при генерации коротких ссылок.
+	GetConfDB() *postgresqlconfig.ConfigDB // GetConfDB возвращает конфигурацию базы данных.
+	GetStartLenShortLink() int             // GetStartLenShortLink возвращает начальную длину коротких ссылок.
 }
 
+// GeneratorRunes определяет интерфейс для генерации случайных строк на основе переданной длины.
 type GeneratorRunes interface {
-	RandStringRunes(int) string
+	RandStringRunes(int) string // RandStringRunes генерирует случайную строку заданной длины.
 }
 
+// DB представляет собой структуру базы данных с реализацией методов для взаимодействия с ней.
 type DB struct {
 	conf           ConfigerStorage
 	generatorRunes GeneratorRunes
@@ -34,10 +38,12 @@ type DB struct {
 	chURLsForDel   chan models.StructDelURLs
 }
 
+// New создает новый экземпляр DB и инициализирует подключение к базе данных.
 func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRunes) (*DB, error) {
 	db := &DB{conf: config, generatorRunes: generatorRunes}
 	ConfDB := db.conf.GetConfDB()
 	db.ps = ConfDB.StringServer
+
 	err := db.openDB()
 	if err != nil {
 		return nil, err
@@ -50,6 +56,7 @@ func New(ctx context.Context, config ConfigerStorage, generatorRunes GeneratorRu
 	return db, err
 }
 
+// openDB открывает соединение с базой данных.
 func (d *DB) openDB() error {
 	db, err := sql.Open("pgx", d.ps)
 	if err != nil {
@@ -60,6 +67,7 @@ func (d *DB) openDB() error {
 	return nil
 }
 
+// createTable создает таблицу в базе данных, если она еще не существует.
 func (d *DB) createTable(ctx context.Context) error {
 	con, err := d.db.Conn(ctx)
 	if err != nil {
@@ -78,6 +86,7 @@ func (d *DB) createTable(ctx context.Context) error {
 	return err
 }
 
+// Ping проверяет подключение к базе данных.
 func (d *DB) Ping(ctx context.Context) error {
 	con, err := d.db.Conn(ctx)
 	if err != nil {
@@ -88,6 +97,7 @@ func (d *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
+// AddURL добавляет URL в базу данных и возвращает сокращенную ссылку.
 func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
 	var UserID string
 	var userIDCTX models.CtxString = "userID"
@@ -133,6 +143,7 @@ func (d *DB) AddURL(ctx context.Context, URL string) (string, error) {
 	return shorturl, nil
 }
 
+// GetURL получает оригинальный URL по сокращенной ссылке.
 func (d *DB) GetURL(ctx context.Context, shortURL string) (string, bool, error) {
 	con, err := d.db.Conn(ctx)
 	if err != nil {
@@ -158,10 +169,12 @@ func (d *DB) GetURL(ctx context.Context, shortURL string) (string, bool, error) 
 	return "", false, nil
 }
 
+// Close закрывает соединение с базой данных.
 func (d *DB) Close() error {
 	return d.db.Close()
 }
 
+// FindLongURL ищет сокращенную ссылку по оригинальному URL.
 func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	con, err := d.db.Conn(ctx)
 	if err != nil {
@@ -183,6 +196,7 @@ func (d *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	return "", false, nil
 }
 
+// AddBatchLink добавляет пакет ссылок в базу данных и возвращает результат операции.
 func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	var UserID string
 	var userIDCTX models.CtxString = "userID"
@@ -270,6 +284,7 @@ func (d *DB) AddBatchLink(ctx context.Context, batchLinks []models.IncomingBatch
 	return
 }
 
+// GetLinksUser возвращает список ссылок для указанного пользователя.
 func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	con, err := d.db.Conn(ctx)
 	if err != nil {
@@ -277,6 +292,16 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 		return nil, err
 	}
 	defer con.Close()
+
+	row := con.QueryRowContext(ctx, `SELECT COUNT(id) FROM short_origin_reference WHERE userID = $1`, userID)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	if count == 0 {
+		return nil, nil
+	}
 
 	rows, err := con.QueryContext(ctx, `SELECT ShortURL, OriginalURL
 	FROM short_origin_reference WHERE userID = $1`, userID)
@@ -301,6 +326,7 @@ func (d *DB) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
+// InitializingRemovalChannel инициализирует каналы для удаления ссылок.
 func (d *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	d.chsURLsForDel = chsURLs
 	go d.GroupingDataForDeleted(ctx)
@@ -308,8 +334,8 @@ func (d *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []mode
 	return nil
 }
 
+// GroupingDataForDeleted группирует данные для удаления из канала в канал удаления.
 func (d *DB) GroupingDataForDeleted(ctx context.Context) {
-
 	var wg sync.WaitGroup
 	for {
 		select {
@@ -317,8 +343,7 @@ func (d *DB) GroupingDataForDeleted(ctx context.Context) {
 			wg.Wait()
 			close(d.chURLsForDel)
 			return
-		default:
-			sliceVal := <-d.chsURLsForDel
+		case sliceVal := <-d.chsURLsForDel:
 			wg.Add(1)
 			go func(*sync.WaitGroup) {
 				for _, val := range sliceVal {
@@ -330,11 +355,14 @@ func (d *DB) GroupingDataForDeleted(ctx context.Context) {
 	}
 }
 
+// FillBufferDelete заполняет буфер для удаления ссылок и запускает процесс удаления по таймеру.
 func (d *DB) FillBufferDelete(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case val := <-d.chURLsForDel:
 			listForDel = append(listForDel, val)
 		case <-t.C:
@@ -347,6 +375,7 @@ func (d *DB) FillBufferDelete(ctx context.Context) {
 	}
 }
 
+// deletedURLs удаляет ссылки из базы данных на основе данных в буфере.
 func (d *DB) deletedURLs(listForDel []models.StructDelURLs) {
 	ctx := context.Background()
 	tx, err := d.db.Begin()

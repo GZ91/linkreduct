@@ -4,39 +4,44 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"os"
-	"strconv"
-	"sync"
-	"time"
 )
 
+// GeneratorRunes предоставляет метод для генерации случайных строк.
 type GeneratorRunes interface {
 	RandStringRunes(int) string
 }
 
+// ConfigerStorage предоставляет методы для получения конфигурационных данных хранилища.
 type ConfigerStorage interface {
 	GetMaxIterLen() int
 	GetNameFileStorage() string
 	GetStartLenShortLink() int
 }
 
-func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) *db {
-	DB := &db{
+// New создает и возвращает новый экземпляр DB (хранилища данных) с указанными конфигурацией и генератором строк.
+func New(ctx context.Context, conf ConfigerStorage, gen GeneratorRunes) (*DB, error) {
+	db := &DB{
 		generatorRunes: gen,
 		conf:           conf,
 		data:           make(map[string]*models.StructURL),
 		chURLsForDel:   make(chan models.StructDelURLs),
 	}
-	DB.open()
-	return DB
+	db.open()
+	return db, nil
 }
 
-type db struct {
+// DB представляет хранилище данных для URL.
+type DB struct {
 	generatorRunes GeneratorRunes
 	conf           ConfigerStorage
 	mutex          sync.Mutex
@@ -46,7 +51,8 @@ type db struct {
 	chURLsForDel   chan models.StructDelURLs
 }
 
-func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
+// GetURL возвращает URL по ключу.
+func (r *DB) GetURL(ctx context.Context, key string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	datainModel, ok := r.data[key]
@@ -60,7 +66,8 @@ func (r *db) GetURL(ctx context.Context, key string) (string, bool, error) {
 	return retval, ok, nil
 }
 
-func (r *db) AddURL(ctx context.Context, url string) (string, error) {
+// AddURL добавляет URL в хранилище и возвращает короткий URL.
+func (r *DB) AddURL(ctx context.Context, url string) (string, error) {
 	shortURL, err := r.getShortURL(ctx)
 	if err != nil {
 		return "", err
@@ -84,7 +91,8 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 	return shortURL, nil
 }
 
-func (r *db) save() (errs error) {
+// save сохраняет новые данные в файл.
+func (r *DB) save() (errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	nameFile := r.conf.GetNameFileStorage()
@@ -135,7 +143,8 @@ func (r *db) save() (errs error) {
 	return
 }
 
-func (r *db) open() (errs error) {
+// open открывает файл и загружает данные в хранилище.
+func (r *DB) open() (errs error) {
 	nameFile := r.conf.GetNameFileStorage()
 	if nameFile == "" {
 		return nil
@@ -161,11 +170,13 @@ func (r *db) open() (errs error) {
 	return
 }
 
-func (r *db) Close() error {
+// Close сохраняет данные перед закрытием хранилища.
+func (r *DB) Close() error {
 	return r.save()
 }
 
-func (r *db) getShortURL(ctx context.Context) (string, error) {
+// getShortURL возвращает уникальный короткий URL.
+func (r *DB) getShortURL(ctx context.Context) (string, error) {
 	lenID := r.conf.GetStartLenShortLink()
 	iterLen := 0
 	MaxIterLen := r.conf.GetMaxIterLen()
@@ -186,11 +197,13 @@ func (r *db) getShortURL(ctx context.Context) (string, error) {
 	}
 }
 
-func (r *db) Ping(ctx context.Context) error {
+// Ping проверяет доступность хранилища данных.
+func (r *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
+// FindLongURL ищет длинный URL по его оригинальному значению.
+func (r *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	for key, val := range r.data {
@@ -201,7 +214,8 @@ func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool,
 	return "", false, nil
 }
 
-func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+// AddBatchLink добавляет пакет URL в хранилище.
+func (r *DB) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	for _, data := range batchLink {
 		link := data.OriginalURL
 		var shortURL string
@@ -224,7 +238,8 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 	return
 }
 
-func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+// GetLinksUser возвращает URL'ы пользователя.
+func (r *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	returnData := make([]models.ReturnedStructURL, 0)
 	for _, val := range r.data {
 		if val.UserID == userID {
@@ -234,29 +249,43 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+// InitializingRemovalChannel инициализирует канал для удаления URL.
+func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
-	go r.GroupingDataForDeleted()
-	go r.FillBufferDelete()
+	go r.GroupingDataForDeleted(ctx)
+	go r.FillBufferDelete(ctx)
 	return nil
 }
 
-func (r *db) GroupingDataForDeleted() {
-	for sliceVal := range r.chsURLsForDel {
-		sliceVal := sliceVal
-		go func() {
-			for _, val := range sliceVal {
-				r.chURLsForDel <- val
-			}
-		}()
+// GroupingDataForDeleted группирует данные для удаления.
+func (r *DB) GroupingDataForDeleted(ctx context.Context) {
+	var wg sync.WaitGroup
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			close(r.chURLsForDel)
+			return
+		case sliceVal := <-r.chsURLsForDel:
+			wg.Add(1)
+			go func(*sync.WaitGroup) {
+				for _, val := range sliceVal {
+					r.chURLsForDel <- val
+				}
+				wg.Done()
+			}(&wg)
+		}
 	}
 }
 
-func (r *db) FillBufferDelete() {
+// FillBufferDelete заполняет буфер для удаления URL.
+func (r *DB) FillBufferDelete(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case val := <-r.chURLsForDel:
 			listForDel = append(listForDel, val)
 		case <-t.C:
@@ -268,7 +297,8 @@ func (r *db) FillBufferDelete() {
 	}
 }
 
-func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+// deletedURLs помечает URL для удаления.
+func (r *DB) deletedURLs(listForDel []models.StructDelURLs) {
 	for _, val := range listForDel {
 		for index := range r.data {
 			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {

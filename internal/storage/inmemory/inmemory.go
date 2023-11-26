@@ -2,28 +2,38 @@ package inmemory
 
 import (
 	"context"
+	"sync"
+	"time"
+
 	"github.com/GZ91/linkreduct/internal/app/logger"
 	"github.com/GZ91/linkreduct/internal/errorsapp"
 	"github.com/GZ91/linkreduct/internal/models"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
+// ConfigerStorage определяет интерфейс для получения конфигурации, связанной с хранилищем.
 type ConfigerStorage interface {
 	GetMaxIterLen() int
 }
 
+// GeneratorRunes определяет интерфейс для генерации случайных строк.
 type GeneratorRunes interface {
 	RandStringRunes(int) string
 }
 
-func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) *db {
-	return &db{data: make(map[string]*models.StructURL, 1), config: conf, genrun: genrun, chURLsForDel: make(chan models.StructDelURLs)}
+// New инициализирует новый экземпляр типа DB, представляющий хранилище данных в памяти для URL.
+func New(ctx context.Context, conf ConfigerStorage, genrun GeneratorRunes) (*DB, error) {
+	return &DB{
+		data:         make(map[string]*models.StructURL, 1),
+		config:       conf,
+		genrun:       genrun,
+		chURLsForDel: make(chan models.StructDelURLs),
+	}, nil
 }
 
-type db struct {
+// DB представляет собой хранилище данных в памяти для URL.
+type DB struct {
 	data          map[string]*models.StructURL
 	config        ConfigerStorage
 	genrun        GeneratorRunes
@@ -32,15 +42,20 @@ type db struct {
 	chURLsForDel  chan models.StructDelURLs
 }
 
-func (r *db) setDB(ctx context.Context, key, value string) bool {
+// setDB устанавливает данные для заданного ключа в хранилище в памяти.
+func (r *DB) setDB(ctx context.Context, key, value string) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
+	// Извлечение идентификатора пользователя из контекста, если доступно.
 	var UserID string
 	var userIDCTX models.CtxString = "userID"
 	UserIDVal := ctx.Value(userIDCTX)
 	if UserIDVal != nil {
 		UserID = UserIDVal.(string)
 	}
+
+	// Создание новой структуры StructURL и сохранение ее в карте данных.
 	StructURL := &models.StructURL{
 		OriginalURL: value,
 		ShortURL:    key,
@@ -48,34 +63,44 @@ func (r *db) setDB(ctx context.Context, key, value string) bool {
 		ID:          uuid.New().String(),
 	}
 	r.data[key] = StructURL
+
 	return true
 }
 
-func (r *db) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
+// GetURL извлекает оригинальный URL, связанный с заданным коротким ключом.
+func (r *DB) GetURL(ctx context.Context, key string) (val string, ok bool, errs error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
+	// Извлечение структуры StructURL, связанной с ключом.
 	valueStruct, found := r.data[key]
 	if found {
+		// Проверка, помечен ли URL как удаленный.
 		if valueStruct.DeletedFlag {
 			return "", false, errorsapp.ErrLineURLDeleted
 		}
 		ok = found
 		val = valueStruct.OriginalURL
 	}
+
 	return
 }
 
-func (r *db) AddURL(ctx context.Context, url string) (string, error) {
-
+// AddURL добавляет новый URL в хранилище в памяти, генерируя уникальный короткий ключ для него.
+func (r *DB) AddURL(ctx context.Context, url string) (string, error) {
+	// Установка начальных параметров для генерации короткого ключа.
 	lenID := 5
 	iterLen := 0
 	MaxIterLen := r.config.GetMaxIterLen()
 
+	// Генерация уникального короткого ключа для нового URL.
 	for {
 		if iterLen == MaxIterLen {
 			lenID++
 		}
 		idString := r.genrun.RandStringRunes(lenID)
+
+		// Проверка, существует ли уже сгенерированный ключ.
 		if _, found, err := r.GetURL(ctx, idString); found {
 			if err != nil {
 				return "", err
@@ -83,41 +108,55 @@ func (r *db) AddURL(ctx context.Context, url string) (string, error) {
 			iterLen++
 			continue
 		}
+
+		// Установка нового URL в хранилище в памяти.
 		r.setDB(ctx, idString, url)
 		return idString, nil
 	}
 }
 
-func (r *db) Close() error {
+// Close выполняет необходимую очистку или освобождение ресурсов.
+func (r *DB) Close() error {
 	return nil
 }
 
-func (r *db) Ping(ctx context.Context) error {
+// Ping проверяет доступность или состояние хранилища.
+func (r *DB) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (r *db) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
+// FindLongURL находит короткий ключ, связанный с заданным оригинальным URL.
+func (r *DB) FindLongURL(ctx context.Context, OriginalURL string) (string, bool, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
+
+	// Итерация по карте данных для поиска ключа, связанного с оригинальным URL.
 	for key, val := range r.data {
 		if val.OriginalURL == OriginalURL {
 			return key, true, nil
 		}
 	}
+
 	return "", false, nil
 }
 
-func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
+// AddBatchLink добавляет пакет URL в хранилище в памяти.
+func (r *DB) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchURL) (releasedBatchURL []models.ReleasedBatchURL, errs error) {
 	for _, data := range batchLink {
 		link := data.OriginalURL
 		var shortURL string
+
+		// Проверка существования URL.
 		shortURL, ok, err := r.FindLongURL(ctx, link)
 		if err != nil {
 			return nil, err
 		}
+
 		if ok {
+			// URL уже существует, возврат ошибки.
 			errs = errorsapp.ErrLinkAlreadyExists
 		} else {
+			// Добавление URL в хранилище в памяти.
 			var err error
 			shortURL, err = r.AddURL(ctx, link)
 			if err != nil {
@@ -126,13 +165,19 @@ func (r *db) AddBatchLink(ctx context.Context, batchLink []models.IncomingBatchU
 				return
 			}
 		}
+
+		// Добавление освобожденного URL в срез результатов.
 		releasedBatchURL = append(releasedBatchURL, models.ReleasedBatchURL{CorrelationID: data.CorrelationID, ShortURL: shortURL})
 	}
+
 	return
 }
 
-func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
+// GetLinksUser извлекает URL, связанные с конкретным пользователем из хранилища в памяти.
+func (r *DB) GetLinksUser(ctx context.Context, userID string) ([]models.ReturnedStructURL, error) {
 	returnData := make([]models.ReturnedStructURL, 0)
+
+	// Итерация по данным хранилища для поиска URL, принадлежащих конкретному пользователю.
 	for _, val := range r.data {
 		if val.UserID == userID {
 			returnData = append(returnData, models.ReturnedStructURL{OriginalURL: val.OriginalURL, ShortURL: val.ShortURL})
@@ -141,41 +186,60 @@ func (r *db) GetLinksUser(ctx context.Context, userID string) ([]models.Returned
 	return returnData, nil
 }
 
-func (r *db) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
+// InitializingRemovalChannel инициализирует канал для удаления URL.
+func (r *DB) InitializingRemovalChannel(ctx context.Context, chsURLs chan []models.StructDelURLs) error {
 	r.chsURLsForDel = chsURLs
-	go r.GroupingDataForDeleted()
-	go r.FillBufferDelete()
+
+	// Запуск горутин для обработки данных о удалении и очистки буфера.
+	go r.GroupingDataForDeleted(ctx)
+	go r.FillBufferDelete(ctx)
+
 	return nil
 }
 
-func (r *db) GroupingDataForDeleted() {
-	for sliceVal := range r.chsURLsForDel {
-		sliceVal := sliceVal
-		go func() {
-			for _, val := range sliceVal {
-				r.chURLsForDel <- val
-			}
-		}()
+// GroupingDataForDeleted группирует данные для удаления в буфере.
+func (r *DB) GroupingDataForDeleted(ctx context.Context) {
+	var wg sync.WaitGroup
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			close(r.chURLsForDel)
+			return
+		case sliceVal := <-r.chsURLsForDel:
+			wg.Add(1)
+			go func(*sync.WaitGroup) {
+				// Пересылка данных о удалении из среза в канал.
+				for _, val := range sliceVal {
+					r.chURLsForDel <- val
+				}
+				wg.Done()
+			}(&wg)
+		}
 	}
 }
 
-func (r *db) FillBufferDelete() {
+// FillBufferDelete заполняет буфер данными для удаления.
+func (r *DB) FillBufferDelete(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	var listForDel []models.StructDelURLs
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case val := <-r.chURLsForDel:
 			listForDel = append(listForDel, val)
 		case <-t.C:
 			if len(listForDel) > 0 {
+				// Удаление URL, указанных в буфере.
 				r.deletedURLs(listForDel)
 			}
 		}
-
 	}
 }
 
-func (r *db) deletedURLs(listForDel []models.StructDelURLs) {
+// deletedURLs устанавливает флаг DeletedFlag для URL, указанных в списке для удаления.
+func (r *DB) deletedURLs(listForDel []models.StructDelURLs) {
 	for _, val := range listForDel {
 		for index := range r.data {
 			if r.data[index].ShortURL == val.URL && r.data[index].UserID == val.UserID {
